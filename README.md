@@ -1,16 +1,67 @@
-# React + Vite
+# 🏢 Employee Management System (EMS)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, high-performance dashboard for managing employees, projects, and tasks. Built with a focus on real-time data visualization and efficient administration.
 
-Currently, two official plugins are available:
+## 🚀 Key Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Admin Dashboard**: Comprehensive overview of workforce status, active projects, and upcoming tasks.
+- **Employee Portal**: Personalized view for employees to track their tasks, projects, and schedules.
+- **Project Tracking**: Manage multiple projects with progress monitoring and team assignments.
+- **Task Management**: Kanban-style or list-based task tracking for efficient workflow management.
+- **Real-time Analytics**: Visualized data using Recharts for workforce status and project completion.
+- **Modern UI/UX**: Clean, responsive design with Tailwind CSS and Lucide icons.
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend Core**: React 19, Vite
+- **Styling**: Tailwind CSS 4, Lucide React
+- **State Management**: Zustand
+- **Data Visualization**: Recharts
+- **Utilities**: Date-fns, CLSX, Tailwind Merge
 
-## Expanding the ESLint configuration
+## 📦 Project Structure
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```text
+src/
+├── components/     # Reusable UI components (Sidebar, Layout, etc.)
+├── pages/          # Main dashboard views (Admin, Employee, Tasks, etc.)
+├── store/          # Zustand state management (Auth, App state)
+├── lib/            # Utility functions and shared logic
+├── assets/         # Static images and icons
+└── App.jsx         # Main application routing and entry
+```
+
+## 🛠️ Getting Started
+
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   ```
+2. Navigate to the project directory:
+   ```bash
+   cd Employee
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+### Execution
+
+Run the development server:
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:5173`.
+
+## 📄 License
+
+This project is licensed under the MIT License.
