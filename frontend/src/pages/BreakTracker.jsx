@@ -1,125 +1,177 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/api';
+import { Play, Square, Coffee, Clock, Activity, Download } from 'lucide-react';
+
+const demoBreaks = [
+    { id: 'B-101', type: 'Short', start_time: new Date(new Date().setHours(10, 10, 0)).toISOString(), end_time: new Date(new Date().setHours(10, 20, 0)).toISOString(), duration: 10 },
+    { id: 'B-102', type: 'Lunch', start_time: new Date(new Date().setHours(13, 0, 0)).toISOString(), end_time: new Date(new Date().setHours(13, 45, 0)).toISOString(), duration: 45 },
+    { id: 'B-103', type: 'Personal', start_time: new Date(new Date().setHours(16, 0, 0)).toISOString(), end_time: new Date(new Date().setHours(16, 10, 0)).toISOString(), duration: 10 }
+];
 
 const BreakTracker = () => {
-    const [records, setRecords] = useState([]);
+    const [breaks, setBreaks] = useState([]);
+    const [isOnBreak, setIsOnBreak] = useState(false);
+    const [reason, setReason] = useState('Lunch');
     const [loading, setLoading] = useState(true);
-    const [actionLoading, setActionLoading] = useState(false);
-    const [category, setCategory] = useState('Personal');
-    const role = localStorage.getItem('role');
-
-    useEffect(() => {
-        fetchBreaks();
-    }, []);
 
     const fetchBreaks = async () => {
         try {
-            const response = await api.get('/breaks');
-            setRecords(response.data);
-        } catch (error) {
-            console.error('Error fetching breaks', error);
+            const res = await api.get('/breaks/history');
+            setBreaks(res.data);
+            const activeBreak = res.data.find(b => !b.end_time);
+            setIsOnBreak(!!activeBreak);
+        } catch (err) {
+            console.error('Error fetching breaks:', err);
         } finally {
             setLoading(false);
         }
     };
 
+    useEffect(() => {
+        fetchBreaks();
+    }, []);
+
     const handleStartBreak = async () => {
-        setActionLoading(true);
         try {
-            await api.post('/breaks/start', { category });
+            await api.post('/breaks/start', { type: reason });
+            setIsOnBreak(true);
             fetchBreaks();
-            alert('Break started.');
-        } catch (error) {
-            alert(error.response?.data?.error || 'Failed to start break');
-        } finally {
-            setActionLoading(false);
+        } catch (err) {
+            alert('Failed to start break');
         }
     };
 
     const handleEndBreak = async () => {
-        setActionLoading(true);
         try {
-            const res = await api.post('/breaks/end');
+            await api.post('/breaks/end');
+            setIsOnBreak(false);
             fetchBreaks();
-            alert(`Break ended. Duration: ${res.data.break_duration.toFixed(0)} minutes`);
-        } catch (error) {
-            alert(error.response?.data?.error || 'Failed to end break');
-        } finally {
-            setActionLoading(false);
+        } catch (err) {
+            alert('Failed to end break');
         }
     };
 
-    if (loading) return <div>Loading...</div>;
+    const allBreaks = [...demoBreaks, ...breaks];
 
-    const hasActiveBreak = role === 'employee' && records.some(r => !r.break_end && r.date === new Date().toISOString().split('T')[0]);
+    if (loading) return <div className="p-10 text-center text-secondary">Calibrating recuperation telemetry...</div>;
+
+    const getBreakTypeClass = (type) => {
+        switch (type.toLowerCase()) {
+            case 'lunch': return 'bg-orange-50 text-orange-600 border border-orange-100';
+            case 'short': return 'bg-blue-50 text-blue-600 border border-blue-100';
+            case 'meeting': return 'bg-purple-50 text-purple-600 border border-purple-100';
+            default: return 'bg-slate-50 text-slate-600 border border-slate-100';
+        }
+    };
 
     return (
-        <div className="fade-in">
-            <div className="page-title d-flex justify-content-between align-items-center mb-5">
+        <div className="animate-fade">
+            <header className="mb-8 flex justify-between items-end">
                 <div>
-                    <h2 style={{fontWeight: '700'}}>Break Management</h2>
-                    <p className="text-muted small">Efficiently manage recovery periods and break cycles.</p>
+                    <h1>Recuperation Protocols</h1>
+                    <p className="text-subtitle mb-0">Managed synchronization of rest cycles to maintain workforce peak efficiency.</p>
                 </div>
-                
-                {role === 'employee' && (
-                    <div className="d-flex gap-3 align-items-center">
-                        {!hasActiveBreak ? (
-                            <>
-                                <select 
-                                    className="form-select bg-light border-light" 
-                                    style={{width: '180px', borderRadius: '12px'}}
-                                    value={category}
-                                    onChange={e => setCategory(e.target.value)}
-                                >
-                                    <option value="Lunch">Lunch Break</option>
-                                    <option value="Coffee">Coffee Break</option>
-                                    <option value="Personal">Personal Time</option>
-                                </select>
-                                <button className="btn btn-warning px-4" style={{fontWeight: '600'}} onClick={handleStartBreak} disabled={actionLoading}>
-                                    {actionLoading ? 'Initiating...' : 'Initialize Break'}
-                                </button>
-                            </>
-                        ) : (
-                            <button className="btn btn-primary px-4" style={{fontWeight: '600'}} onClick={handleEndBreak} disabled={actionLoading}>
-                                {actionLoading ? 'Resuming...' : 'End Active Break'}
+                <button className="btn btn-outline">
+                    <Download size={16} /> Export Metrics
+                </button>
+            </header>
+
+            <section className="card card-hover">
+                <div className="flex items-center justify-between">
+                    <div className="flex-1 max-w-lg">
+                        <div className="flex items-center gap-4 mb-4">
+                             <div className={`p-3 rounded-xl shadow-sm ${isOnBreak ? 'bg-orange-50 text-orange-600' : 'bg-slate-50 text-slate-400'}`}>
+                                <Coffee size={24} />
+                             </div>
+                             <div>
+                                <h2 className="mb-0">Relief Sequence</h2>
+                                <p className="text-muted mb-0">Configure and execute authorized pause events.</p>
+                             </div>
+                        </div>
+                        <div className="form-group mt-6">
+                            <label className="label-premium">Recuperation Rationale</label>
+                            <select 
+                                className="form-input py-3" 
+                                value={reason}
+                                onChange={(e) => setReason(e.target.value)}
+                                disabled={isOnBreak}
+                            >
+                                <option value="Lunch">Mid-day Refuel Protocol (Lunch)</option>
+                                <option value="Short">Brief Cognitive Respite (Short)</option>
+                                <option value="Meeting">External Sync Buffer (Meeting)</option>
+                                <option value="Personal">Unscheduled Necessity (Personal)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="pl-8">
+                        {!isOnBreak ? (
+                            <button onClick={handleStartBreak} className="btn btn-primary px-10 py-4 text-base shadow-lg shadow-primary/20">
+                                <Play size={20} /> Initiate Pause
                             </button>
+                        ) : (
+                            <div className="flex flex-col items-center gap-4">
+                                <button onClick={handleEndBreak} className="btn btn-outline border-orange-400 text-orange-600 hover:bg-orange-50 px-10 py-4 text-base">
+                                    <Square size={20} /> Conclude Relief
+                                </button>
+                                <div className="flex items-center gap-2 text-[10px] font-bold text-orange-400 uppercase tracking-widest animate-pulse">
+                                    <Activity size={12} />
+                                    <span>Syncing Rest Data</span>
+                                </div>
+                            </div>
                         )}
                     </div>
-                )}
-            </div>
+                </div>
+            </section>
 
-            <div className="glass-card">
-                <table className="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            {(role === 'admin' || role === 'manager') && <th>Employee Identity</th>}
-                            <th>Log Date</th>
-                            <th>Classification</th>
-                            <th>Start Signature</th>
-                            <th>End Signature</th>
-                            <th>Duration</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {records.map(record => (
-                            <tr key={record.id}>
-                                {(role === 'admin' || role === 'manager') && <td className="fw-bold" style={{color: 'var(--primary)'}}>{record.name}</td>}
-                                <td>{record.date}</td>
-                                <td><span className="badge badge-info">{record.category || 'Personal'}</span></td>
-                                <td>{new Date(record.break_start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                                <td>{record.break_end ? new Date(record.break_end).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'}</td>
-                                <td>
-                                    {record.break_duration 
-                                        ? <span className="badge badge-success" style={{fontSize: '0.9rem'}}>{record.break_duration.toFixed(0)}m</span>
-                                        : <span className="badge badge-warning" style={{fontSize: '0.9rem'}}>In Transition</span>
-                                    }
-                                </td>
+            <section className="card">
+                <div className="flex items-center gap-4 mb-10">
+                    <div className="p-3 bg-primary/5 text-primary rounded-xl">
+                        <Clock size={24} />
+                    </div>
+                    <div>
+                        <h2 className="mb-0">Archived Pauses</h2>
+                        <p className="text-muted mb-0">Detailed index of historical recuperation duration and classifications.</p>
+                    </div>
+                </div>
+
+                <div className="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Classification</th>
+                                <th>Sequence Start</th>
+                                <th>Sequence End</th>
+                                <th>Metric / Duration</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-                {records.length === 0 && <div className="text-center p-5 text-muted">No break telemetry recorded in current cycle.</div>}
-            </div>
+                        </thead>
+                        <tbody>
+                            {allBreaks.map((b, idx) => (
+                                <tr key={idx}>
+                                    <td>
+                                        <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${getBreakTypeClass(b.type)}`}>
+                                            {b.type}
+                                        </span>
+                                    </td>
+                                    <td className="text-slate-600 font-bold">{new Date(b.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                                    <td className="text-slate-600 font-bold">
+                                        {b.end_time ? new Date(b.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (
+                                            <span className="text-orange-500 italic">Relief active...</span>
+                                        )}
+                                    </td>
+                                    <td>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400 shadow-sm border border-slate-100">
+                                                <Clock size={16} />
+                                            </div>
+                                            <span className="font-extrabold text-slate-700">{b.duration || '--'} <span className="text-slate-400 font-bold text-xs uppercase ml-1">Min</span></span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     );
 };

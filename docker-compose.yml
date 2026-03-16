@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - PG_HOST=postgres
+      - MONGODB_URI=mongodb://mongodb:27017/employee_activity_logs
+    depends_on:
+      - postgres
+      - mongodb
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=employee_dashboard
+      - POSTGRES_PASSWORD=password
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/database/postgresql_schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+
+volumes:
+  pgdata:
+  mongodata:

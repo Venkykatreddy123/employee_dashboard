@@ -1,147 +1,156 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api/api';
+import { Play, Square, History, Clock, Activity, Download } from 'lucide-react';
 
-import AttendanceTable from '../components/AttendanceTable';
+const demoLogs = [
+    { id: 'D-101', name: 'Alice Johnson', login_time: new Date(new Date().setHours(9, 0, 0)).toISOString(), logout_time: new Date(new Date().setHours(18, 0, 0)).toISOString(), status: 'Completed' },
+    { id: 'D-102', name: 'John Doe', login_time: new Date(new Date().setHours(9, 15, 0)).toISOString(), logout_time: new Date(new Date().setHours(18, 5, 0)).toISOString(), status: 'Completed' },
+    { id: 'D-103', name: 'Sarah Williams', login_time: new Date(new Date().setHours(8, 55, 0)).toISOString(), logout_time: null, status: 'Active' }
+];
 
 const Attendance = () => {
-    const [records, setRecords] = useState([]);
+    const [logs, setLogs] = useState([]);
+    const [isActive, setIsActive] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [actionLoading, setActionLoading] = useState(false);
-    const [showManualModal, setShowManualModal] = useState(false);
-    const [employees, setEmployees] = useState([]);
-    const [manualLog, setManualLog] = useState({ employee_id: '', date: new Date().toISOString().split('T')[0], check_in: '', check_out: '' });
-    const role = localStorage.getItem('role');
 
-    useEffect(() => {
-        fetchAttendance();
-        if (role === 'admin' || role === 'manager') fetchEmployees();
-    }, [role]);
-
-    const fetchAttendance = async () => {
+    const fetchLogs = async () => {
         try {
-            const response = await api.get('/attendance');
-            setRecords(response.data);
-        } catch (error) {
-            console.error('Error fetching attendance', error);
+            const res = await api.get('/attendance/history');
+            setLogs(res.data);
+            const activeSession = res.data.find(log => !log.logout_time);
+            setIsActive(!!activeSession);
+        } catch (err) {
+            console.error('Error fetching logs:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchEmployees = async () => {
-        try {
-            const response = await api.get('/employees');
-            setEmployees(response.data);
-        } catch (error) { console.error('Error fetching employees', error); }
-    };
+    useEffect(() => {
+        fetchLogs();
+    }, []);
 
     const handleCheckIn = async () => {
-        setActionLoading(true);
         try {
-            await api.post('/attendance/checkin');
-            fetchAttendance();
-        } catch (error) {
-            alert(error.response?.data?.error || 'Failed to check in');
-        } finally {
-            setActionLoading(false);
+            await api.post('/attendance/check-in');
+            setIsActive(true);
+            fetchLogs();
+        } catch (err) {
+            alert('Failed to check in');
         }
     };
 
     const handleCheckOut = async () => {
-        setActionLoading(true);
         try {
-            await api.post('/attendance/checkout');
-            fetchAttendance();
-        } catch (error) {
-            alert(error.response?.data?.error || 'Failed to check out');
-        } finally {
-            setActionLoading(false);
+            await api.post('/attendance/check-out');
+            setIsActive(false);
+            fetchLogs();
+        } catch (err) {
+            alert('Failed to check out');
         }
     };
 
-    const handleManualSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await api.post('/attendance/manual', manualLog);
-            setShowManualModal(false);
-            fetchAttendance();
-            alert('Manual entry recorded.');
-        } catch (error) { alert(error.response?.data?.error || 'Failed'); }
-    }
+    const allLogs = [...demoLogs, ...logs];
 
-    if (loading) return <div>Loading...</div>;
-
-    const hasActiveShift = role === 'employee' && records.some(r => !r.check_out && r.date === new Date().toISOString().split('T')[0]);
+    if (loading) return <div className="p-10 text-center text-secondary">Synchronizing presence records...</div>;
 
     return (
-        <div className="fade-in">
-            <div className="page-title d-flex justify-content-between align-items-center mb-5">
+        <div className="animate-fade">
+            <header className="mb-8 flex justify-between items-end">
                 <div>
-                    <h2 style={{fontWeight: '700'}}>Attendance Management</h2>
-                    <p className="text-muted small">Monitor real-time shifts and historical telemetry.</p>
+                    <h1>Presence Intelligence</h1>
+                    <p className="text-subtitle mb-0">High-fidelity tracking of organizational availability and session synchronization.</p>
                 </div>
-                
-                <div className="d-flex gap-3">
-                    {(role === 'admin' || role === 'manager') && (
-                        <button className="btn btn-outline-info" onClick={() => setShowManualModal(true)}>
-                            Manual Override
-                        </button>
-                    )}
-                    {role === 'employee' && (
-                        !hasActiveShift ? (
-                            <button className="btn btn-primary px-4" onClick={handleCheckIn} disabled={actionLoading}>
-                                {actionLoading ? 'Initializing...' : 'Clock In System'}
-                            </button>
-                        ) : (
-                            <button className="btn btn-danger px-4" onClick={handleCheckOut} disabled={actionLoading}>
-                                {actionLoading ? 'Terminating...' : 'Clock Out System'}
-                            </button>
-                        )
-                    )}
-                </div>
-            </div>
+                <button className="btn btn-outline">
+                    <Download size={16} /> Export Logs
+                </button>
+            </header>
 
-            <div className="glass-card">
-                <AttendanceTable records={records} isAdmin={role === 'admin' || role === 'manager'} />
-            </div>
-
-            {/* Manual Override Modal */}
-            {showManualModal && (
-                <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)'}}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content glass-card p-4">
-                            <h4 className="mb-4">Manual Entry Correction</h4>
-                            <form onSubmit={handleManualSubmit}>
-                                <div className="mb-3">
-                                    <label className="text-muted small text-uppercase fw-bold mb-2 d-block">Employee</label>
-                                    <select className="form-select bg-light border-light" value={manualLog.employee_id} onChange={e => setManualLog({...manualLog, employee_id: e.target.value})} required>
-                                        <option value="">Select Target...</option>
-                                        {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-                                    </select>
-                                </div>
-                                <div className="mb-3">
-                                    <label className="text-muted small text-uppercase fw-bold mb-2 d-block">Log Date</label>
-                                    <input type="date" className="form-control bg-light border-light" value={manualLog.date} onChange={e => setManualLog({...manualLog, date: e.target.value})} required />
-                                </div>
-                                <div className="row">
-                                    <div className="col">
-                                        <label className="text-muted small text-uppercase fw-bold mb-2 d-block">Check In</label>
-                                        <input type="time" className="form-control bg-light border-light" value={manualLog.check_in} onChange={e => setManualLog({...manualLog, check_in: e.target.value})} required />
-                                    </div>
-                                    <div className="col">
-                                        <label className="text-muted small text-uppercase fw-bold mb-2 d-block">Check Out</label>
-                                        <input type="time" className="form-control bg-light border-light" value={manualLog.check_out} onChange={e => setManualLog({...manualLog, check_out: e.target.value})} required />
-                                    </div>
-                                </div>
-                                <div className="d-flex gap-2 mt-5">
-                                    <button type="submit" className="btn btn-primary flex-grow-1">Commit Entry</button>
-                                    <button type="button" className="btn btn-outline-secondary" onClick={() => setShowManualModal(false)}>Cancel</button>
-                                </div>
-                            </form>
+            <section className="card card-hover">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-6">
+                        <div className={`p-4 rounded-2xl shadow-sm ${isActive ? 'bg-success/10 text-success' : 'bg-slate-50 text-slate-400'}`}>
+                            <Clock size={32} />
+                        </div>
+                        <div>
+                            <div className="flex items-center gap-2 mb-1">
+                                <h2 className="mb-0">Session Controller</h2>
+                                {isActive && <span className="px-2 py-0.5 bg-green-50 text-success text-[10px] font-bold uppercase tracking-widest rounded-full border border-green-100 flex items-center gap-1">
+                                    <Activity size={10} className="animate-pulse" />
+                                    Active Stream
+                                </span>}
+                            </div>
+                            <p className="text-muted mb-0">Direct interface for station check-in/out protocols.</p>
                         </div>
                     </div>
+                    <div className="flex gap-4">
+                        {!isActive ? (
+                            <button onClick={handleCheckIn} className="btn btn-primary px-10 py-4 text-base shadow-lg shadow-primary/20">
+                                <Play size={20} /> Initiate Session
+                            </button>
+                        ) : (
+                            <button onClick={handleCheckOut} className="btn btn-outline border-danger text-danger hover:bg-danger/5 px-10 py-4 text-base">
+                                <Square size={20} /> Conclude Stream
+                            </button>
+                        )}
+                    </div>
                 </div>
-            )}
+            </section>
+
+            <section className="card">
+                <div className="flex items-center gap-4 mb-10">
+                    <div className="p-3 bg-primary/5 text-primary rounded-xl">
+                        <History size={24} />
+                    </div>
+                    <div>
+                        <h2 className="mb-0">Historical Telemetry</h2>
+                        <p className="text-muted mb-0">Full audit trail of personnel synchronization events across the intelligence grid.</p>
+                    </div>
+                </div>
+
+                <div className="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Personnel Node</th>
+                                <th>Sync In</th>
+                                <th>Sync Out</th>
+                                <th>Telemetry Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {allLogs.map((log, idx) => (
+                                <tr key={idx}>
+                                    <td>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold">
+                                                {log.name ? log.name.charAt(0) : 'U'}
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-slate-900">{log.name || 'Anonymous Node'}</div>
+                                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">CloudOps Authorized</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="text-slate-600 font-bold">{new Date(log.login_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                                    <td className="text-slate-600 font-bold">
+                                        {log.logout_time ? new Date(log.logout_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (
+                                            <span className="text-primary italic">Awaiting sync...</span>
+                                        )}
+                                    </td>
+                                    <td>
+                                        <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-widest ${
+                                            !log.logout_time ? 'bg-blue-50 text-primary border border-blue-100' : 'bg-green-50 text-success border border-green-100'
+                                        }`}>
+                                            {!log.logout_time ? 'Live Stream' : 'Archive Ready'}
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
     );
 };

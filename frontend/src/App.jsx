@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import './styles/dashboard.css';
+import './index.css';
 
 // Pages
 import Login from './pages/Login';
@@ -28,14 +27,13 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 };
 
 function App() {
-  const role = localStorage.getItem('role'); // Get role to conditionally check default route
-
   return (
     <BrowserRouter>
       <Routes>
+        {/* Explicit Login Route */}
         <Route path="/login" element={<Login />} />
         
-        {/* Core Routes - Accessible by Admin and Auth Employees */}
+        {/* Guarded Routes */}
         <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
         <Route path="/leaves" element={<ProtectedRoute><LeaveManagement /></ProtectedRoute>} />
@@ -49,7 +47,7 @@ function App() {
         {/* Employee only routes */}
         <Route path="/directory" element={<ProtectedRoute><EmployeeDirectory /></ProtectedRoute>} />
 
-
+        {/* Catch-all: Redirect to primary authenticated route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

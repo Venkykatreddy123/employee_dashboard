@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # 🏢 Employee Management System (EMS)
 
 A modern, high-performance dashboard for managing employees, projects, and tasks. Built with a focus on real-time data visualization and efficient administration.
@@ -66,40 +66,73 @@ The application will be available at `http://localhost:5173`.
 ## 📄 License
 
 This project is licensed under the MIT License.
-=======
 # Nexus HR: Employee Productivity & Analytics Dashboard
+# CloudOps - Enterprise Workforce Analytics Dashboard
 
-Nexus HR is a premium, enterprise-grade platform designed for modern organizations to track employee productivity, attendance, and collaborative sessions with transparency and style.
+CloudOps is a production-ready Employee Productivity and Workforce Analytics system built with React, Node.js, PostgreSQL, and MongoDB.
 
-## 🚀 Key Features
-- **Operational Dashboard**: Real-time telemetry grid with key performance indicators.
-- **Attendance Management**: Automated and manual shift tracking with "Checkpoint" precision.
-- **Break Tracker**: Categorized recovery cycle management (Lunch, Coffee, Personal).
-- **Meeting Log**: Collaborative session tracking with classification and duration metrics.
-- **Leave Management**: Standardized request and resolution workflow for absences.
-- **Personnel Induction**: Full management lifecycle for employees, managers, and admins.
-- **Vibrant Light Design**: A high-end, modern UI/UX featuring glassmorphism (Frost), smooth animations, and premium typography (Outfit).
+## Features
+- **Time Tracking**: Automated login/logout capture and manual corrections.
+- **Idle Detection**: Automatic tracking of unproductive time.
+- **Break Tracking**: Categorized sessions (Lunch, Coffee, Personal).
+- **Meeting Logs**: Classification of internal, client, and team syncs.
+- **Productivity Analytics**: Advanced scoring formula with trend charts.
+- **Leave Management**: Full approval workflow with history.
+- **RBAC**: Role-Based Access Control (Admin, Manager, Employee).
+- **Reporting**: CSV/PDF export for individual and team performance.
 
-## 📂 Project Structure
+## Tech Stack
+- **Frontend**: React.js, Recharts, Premium Glassmorphism CSS.
+- **Backend**: Node.js, Express.js.
+- **Database**: PostgreSQL (Core Data), MongoDB (Audit Logs).
+- **Auth**: JWT with Role-based protection.
+- **DevOps**: Docker, Docker Compose, GitHub Actions CI.
 
+## API Documentation
+
+### Auth
+- `POST /api/auth/login`: Authenticate and receive JWT.
+
+### Attendance
+- `POST /api/attendance/checkin`: Start a work session.
+- `POST /api/attendance/checkout`: End a work session.
+- `PUT /api/attendance/idle`: Update idle time for active session.
+- `GET /api/attendance`: View attendance logs (RBAC filtered).
+
+### Breaks & Meetings
+- `POST /api/break/start`: Start a break.
+- `POST /api/break/end`: End a break.
+- `POST /api/meetings`: Log a meeting.
+
+### Analytics & Reports
+- `GET /api/dashboard/stats`: High-level dashboard metrics.
+- `GET /api/dashboard/analytics`: 30-day productivity trend.
+- `GET /api/reports/csv/:type`: Export CSV report.
+- `GET /api/reports/pdf/:type`: Export PDF report.
+
+## Setup Instructions
+
+### local Development
+1. Clone the repository.
+2. Setup environment variables in `backend/.env`.
+3. Install dependencies:
+   ```bash
+   cd backend && npm install
+   cd ../frontend && npm install
+   ```
+4. Initialize PostgreSQL:
+   ```bash
+   npm run setup-db
+   ```
+5. Start servers:
+   ```bash
+   npm run dev (backend)
+   npm run dev (frontend)
+   ```
+
+### Docker Deployment
 ```bash
-nexus-hr/
-├── backend/            # Express.js & SQLite API
-│   ├── controllers/    # Request handling logic
-│   ├── database/       # DB migrations and storage
-│   ├── middleware/     # JWT Authentication & security
-│   ├── models/         # Data schema definitions
-│   ├── routes/         # API endpoint definitions
-│   └── server.js       # Backend entry point
-└── frontend/           # React 18 & Vite
-    ├── src/
-    │   ├── api/        # API communication (Axios)
-    │   ├── components/ # Reusable UI blocks (Tables, Nav)
-    │   ├── pages/      # Full-page views
-    │   ├── App.css     # Layout-specific styling
-    │   ├── App.jsx     # Routing and core structure
-    │   └── index.css   # Global "Vibrant Light" design system
-    └── index.html      # SPA root
+docker-compose up --build
 ```
 
 ## 🛠️ Tech Stack
@@ -116,4 +149,8 @@ nexus-hr/
 
 ---
 Built with Nexus Design Principles.
->>>>>>> f0ca16ecd1534fd8315152816ff55a5ececa5118
+## Security
+- JWT for all protected routes.
+- Salted password hashing with BCrypt.
+- Role-based middleware for management endpoints.
+- Activity logging in MongoDB for audit trails.

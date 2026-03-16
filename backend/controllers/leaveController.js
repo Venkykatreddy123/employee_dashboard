@@ -1,50 +1,83 @@
 const db = require('../db');
+const ActivityLog = require('../models/ActivityLog');
 
-const applyLeave = (req, res) => {
+const applyLeave = async (req, res) => {
     const { leave_type, start_date, end_date, reason } = req.body;
-    const employee_id = req.user.id;
+    const user_id = req.user.id;
 
-    db.run(
-        'INSERT INTO leaves (employee_id, leave_type, start_date, end_date, reason) VALUES (?, ?, ?, ?, ?)',
-        [employee_id, leave_type, start_date, end_date, reason],
-        function(err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.status(201).json({ id: this.lastID, message: 'Leave application submitted successfully' });
-        }
-    );
-};
+    try {
+        const result = await db.query(
+            'INSERT INTO leaves (user_id, leave_type, start_date, end_date, reason) VALUES ($1, $2, $3, $4, $5) RETURNING id',
+            [user_id, leave_type, start_date, end_date, reason]
+        );
 
-const updateLeaveStatus = (req, res) => {
-    const { id } = req.params;
-    const { status } = req.body; // e.g. Approved or Rejected
-
-    db.run(
-        'UPDATE leaves SET status = ? WHERE id = ?',
-        [status, id],
-        function(err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ message: `Leave ${status.toLowerCase()} successfully` });
-        }
-    );
-};
-
-const getLeaves = (req, res) => {
-    if (req.user.role === 'admin') {
-        db.all(`
-            SELECT l.*, e.name 
-            FROM leaves l 
-            JOIN employees e ON l.employee_id = e.id
-            ORDER BY l.start_date DESC
-        `, [], (err, rows) => {
-            if (err) return res.status(500).json({ error: 'Database error' });
-            res.json(rows);
+        await ActivityLog.create({
+            userId: user_id,
+            action: 'APPLY_LEAVE',
+            details: { leave_type, start_date, end_date },
+            role: req.user.role,
+            ipAddress: req.ip
         });
-    } else {
-        db.all('SELECT * FROM leaves WHERE employee_id = ? ORDER BY start_date DESC', [req.user.id], (err, rows) => {
-            if (err) return res.status(500).json({ error: 'Database error' });
-            res.json(rows);
-        });
+
+        res.status(201).json({ id: result.rows[0].id, message: 'Leave application submitted' });
+    } catch (err) {
+        console.error('Apply leave error:', err);
+        res.status(500).json({ error: err.message });
     }
 };
 
-module.exports = { applyLeave, updateLeaveStatus, getLeaves };
+const approveLeave = async (req, res) => {
+    const { id, status } = req.body; // status: Approved or Rejected
+    const admin_id = req.user.id;
+
+    try {
+        await db.query(
+            'UPDATE leaves SET status = $1, approved_by = $2 WHERE id = $3',
+            [status, admin_id, id]
+        );
+
+        await ActivityLog.create({
+            userId: admin_id,
+            action: 'APPROVE_LEAVE',
+            details: { leave_id: id, status },
+            role: req.user.role,
+            ipAddress: req.ip
+        });
+
+        res.json({ message: `Leave ${status.toLowerCase()} successfully` });
+    } catch (err) {
+        console.error('Approve leave error:', err);
+        res.status(500).json({ error: err.message });
+    }
+};
+
+const getLeaves = async (req, res) => {
+    const { id, role } = req.user;
+
+    try {
+        let query = `
+            SELECT l.*, u.name 
+            FROM leaves l 
+            JOIN users u ON l.user_id = u.id
+        `;
+        let params = [];
+
+        if (role === 'employee') {
+            query += ' WHERE l.user_id = $1';
+            params.push(id);
+        } else if (role === 'manager') {
+            query += ' WHERE u.manager_id = $1 OR l.user_id = $1';
+            params.push(id);
+        }
+
+        query += ' ORDER BY l.start_date DESC';
+
+        const result = await db.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Get leaves error:', err);
+        res.status(500).json({ error: 'Database error' });
+    }
+};
+
+module.exports = { applyLeave, approveLeave, getLeaves };

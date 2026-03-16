@@ -1,73 +1,58 @@
 const db = require('../db');
+const ActivityLog = require('../models/ActivityLog');
 
-const logMeeting = (req, res) => {
-    const { meeting_subject, start_time, classification } = req.body;
-    const employee_id = req.user.id;
-    const date = new Date().toISOString().split('T')[0];
+const logMeeting = async (req, res) => {
+    const { meeting_type, title, start_time, end_time, notes } = req.body;
+    const user_id = req.user.id;
 
-    db.run(
-        'INSERT INTO meetings (employee_id, meeting_subject, start_time, classification, date) VALUES (?, ?, ?, ?, ?)',
-        [employee_id, meeting_subject, start_time, classification, date],
-        function(err) {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ id: this.lastID, message: 'Meeting started' });
-        }
-    );
-};
+    try {
+        const result = await db.query(
+            'INSERT INTO meetings (user_id, meeting_type, title, start_time, end_time, notes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id',
+            [user_id, meeting_type, title, start_time, end_time, notes]
+        );
 
-const endMeeting = (req, res) => {
-    const employee_id = req.user.id;
-    const end_time = new Date().toISOString();
-    const date = new Date().toISOString().split('T')[0];
+        await ActivityLog.create({
+            userId: user_id,
+            action: 'LOG_MEETING',
+            details: { title, meeting_type },
+            role: req.user.role,
+            ipAddress: req.ip
+        });
 
-    db.get(
-        'SELECT * FROM meetings WHERE employee_id = ? AND end_time IS NULL ORDER BY start_time DESC LIMIT 1',
-        [employee_id],
-        (err, meeting) => {
-            if (err) return res.status(500).json({ error: err.message });
-            if (!meeting) return res.status(400).json({ error: 'No active meeting found' });
-
-            const start = new Date(meeting.start_time);
-            const end = new Date(end_time);
-            const duration = (end - start) / (1000 * 60 * 60); // hours
-
-            db.run(
-                'UPDATE meetings SET end_time = ?, duration = ? WHERE id = ?',
-                [end_time, duration, meeting.id],
-                function(err) {
-                    if (err) return res.status(500).json({ error: err.message });
-                    res.json({ message: 'Meeting ended', duration });
-                }
-            );
-        }
-    );
-};
-
-const getMeetings = (req, res) => {
-    const { role, id } = req.user;
-
-    let query = `
-        SELECT m.*, e.name 
-        FROM meetings m 
-        JOIN employees e ON m.employee_id = e.id
-    `;
-    let params = [];
-
-    if (role === 'employee') {
-        query += ' WHERE m.employee_id = ?';
-        params.push(id);
-    } else if (role === 'manager') {
-        // Managers see their team
-        query += ' WHERE e.manager_id = ? OR m.employee_id = ?';
-        params.push(id, id);
+        res.status(201).json({ id: result.rows[0].id, message: 'Meeting logged' });
+    } catch (err) {
+        console.error('Log meeting error:', err);
+        res.status(500).json({ error: err.message });
     }
-
-    query += ' ORDER BY m.date DESC, m.start_time DESC';
-
-    db.all(query, params, (err, rows) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json(rows);
-    });
 };
 
-module.exports = { logMeeting, endMeeting, getMeetings };
+const getMeetings = async (req, res) => {
+    const { id, role } = req.user;
+
+    try {
+        let query = `
+            SELECT m.*, u.name 
+            FROM meetings m 
+            JOIN users u ON m.user_id = u.id
+        `;
+        let params = [];
+
+        if (role === 'employee') {
+            query += ' WHERE m.user_id = $1';
+            params.push(id);
+        } else if (role === 'manager') {
+            query += ' WHERE u.manager_id = $1 OR m.user_id = $1';
+            params.push(id);
+        }
+
+        query += ' ORDER BY m.start_time DESC';
+
+        const result = await db.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('Get meetings error:', err);
+        res.status(500).json({ error: 'Database error' });
+    }
+};
+
+module.exports = { logMeeting, getMeetings };

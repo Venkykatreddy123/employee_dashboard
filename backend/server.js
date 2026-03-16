@@ -19,6 +19,7 @@ app.use('/api/break', require('./routes/breakRoutes'));
 app.use('/api/bonuses', require('./routes/bonusRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/meetings', require('./routes/meetingRoutes'));
+app.use('/api/reports', require('./routes/reportRoutes'));
 
 const PORT = process.env.PORT || 5000;
 

@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { applyLeave, updateLeaveStatus, getLeaves } = require('../controllers/leaveController');
-const { authenticateToken, verifyAdmin } = require('../middleware/authMiddleware');
+const { applyLeave, approveLeave, getLeaves } = require('../controllers/leaveController');
+const { authenticateToken, verifyAdmin, verifyManager } = require('../middleware/authMiddleware');
 
 router.use(authenticateToken);
 
-router.post('/', applyLeave);
+router.post('/apply', applyLeave);
 router.get('/', getLeaves);
-router.put('/:id', verifyAdmin, updateLeaveStatus); // Only Admins can approve/reject
+router.post('/approve', verifyAdmin, approveLeave); // Match frontend call
 
 module.exports = router;
