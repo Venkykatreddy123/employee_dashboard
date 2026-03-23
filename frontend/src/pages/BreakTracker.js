@@ -15,8 +15,11 @@ const BreakTracker = () => {
 
     try {
       console.log('[BreakTracker] Fetching rest cycle data...');
+      const breakUrl = (user.role === 'admin' || user.role === 'manager') 
+        ? `/breaks?role=${user.role}` 
+        : `/breaks?role=${user.role}&user_id=${user.id}`;
       const [breakRes, userRes] = await Promise.all([
-        api.get(`/breaks?user_id=${user.id}`),
+        api.get(breakUrl),
         user.role !== 'employee' ? api.get('/users') : Promise.resolve({ data: [] })
       ]);
       setBreaks(breakRes.data);

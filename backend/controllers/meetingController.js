@@ -10,9 +10,11 @@ export const createMeeting = async (req, res) => {
 };
 
 export const getMeetings = async (req, res) => {
-    const { user_id } = req.query;
+    const { user_id, id, role } = req.query;
+    const targetId = id || user_id;
+    
     try {
-        const result = user_id ? await Meeting.getByUser(user_id) : await Meeting.getAll();
+        const result = targetId ? await Meeting.getByUser(targetId) : await Meeting.getAll();
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching meetings', error: error.message });

@@ -29,8 +29,17 @@ export const checkOut = async (req, res) => {
 };
 
 export const getAllAttendance = async (req, res) => {
+    const { user_id, id, role } = req.query;
+    const targetId = id || user_id;
+    
     try {
-        const result = await Attendance.getAll();
+        let result;
+        // If admin/manager and no specific target, get all.
+        if ((role === 'admin' || role === 'manager') && (!id || id === '')) {
+            result = await Attendance.getAll();
+        } else {
+            result = await Attendance.getByUser(targetId);
+        }
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching attendance', error: error.message });

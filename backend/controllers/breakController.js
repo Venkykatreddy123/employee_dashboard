@@ -29,9 +29,17 @@ export const endBreak = async (req, res) => {
 };
 
 export const getBreaks = async (req, res) => {
-    const { user_id } = req.query;
+    const { user_id, id, role } = req.query;
+    const targetId = id || user_id;
+    
     try {
-        const result = user_id ? await Break.getByUser(user_id) : await Break.getAll();
+        let result;
+        // If admin/manager and no specific target, get all.
+        if ((role === 'admin' || role === 'manager') && (!id || id === '')) {
+            result = await Break.getAll();
+        } else {
+            result = await Break.getByUser(targetId);
+        }
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching breaks', error: error.message });

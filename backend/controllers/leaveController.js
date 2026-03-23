@@ -10,9 +10,19 @@ export const applyLeave = async (req, res) => {
 };
 
 export const getLeaves = async (req, res) => {
-    const { user_id } = req.query;
+    const { user_id, id, role } = req.query;
+    const targetId = id || user_id;
+    
     try {
-        const result = user_id ? await Leave.getByUser(user_id) : await Leave.getAll();
+        let result;
+        // If admin/manager and no specific target, get all. 
+        // Note: targetId is usually provided by the frontend as the requester's ID.
+        // We should allow all if the requester is an admin and didn't specify a different target.
+        if ((role === 'admin' || role === 'manager') && (!id || id === '')) {
+            result = await Leave.getAll();
+        } else {
+            result = await Leave.getByUser(targetId);
+        }
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching leaves', error: error.message });

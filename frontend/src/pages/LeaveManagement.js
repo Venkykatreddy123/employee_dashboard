@@ -6,6 +6,8 @@ const LeaveManagement = () => {
   const [leaves, setLeaves] = useState([]);
   const [showApply, setShowApply] = useState(false);
   const [formData, setFormData] = useState({ leave_type: 'Sick', start_date: '', end_date: '', reason: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   const fetchLeaves = async () => {
@@ -14,7 +16,10 @@ const LeaveManagement = () => {
 
     try {
       console.log('[LeaveManagement] Fetching leave records...');
-      const { data } = await api.get(`/leaves?role=${user.role}&id=${user.id}`);
+      const url = (user.role === 'admin' || user.role === 'manager') 
+        ? `/leaves?role=${user.role}` 
+        : `/leaves?role=${user.role}&id=${user.id}`;
+      const { data } = await api.get(url);
       setLeaves(data);
     } catch (err) {
       console.error('[LeaveManagement] Fetch Error:', err);
@@ -27,14 +32,29 @@ const LeaveManagement = () => {
 
   const handleApply = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     try {
       console.log('[LeaveManagement] Submitting new absence request...');
-      await api.post('/leaves', { ...formData, user_id: user.id });
+      
+      // Map frontend fields (start/end) to backend (from/to)
+      const submission = {
+        user_id: user.id,
+        leave_type: formData.leave_type,
+        from_date: formData.start_date,
+        to_date: formData.end_date,
+        reason: formData.reason
+      };
+
+      await api.post('/leaves', submission);
       setShowApply(false);
       fetchLeaves();
+      setFormData({ leave_type: 'Sick', start_date: '', end_date: '', reason: '' });
     } catch (err) {
       console.error('[LeaveManagement] Apply Error:', err);
-      alert('Error applying for leave: ' + (err.response?.data?.message || err.message));
+      setError(err.response?.data?.message || 'Protocol Failure: Unable to record absence.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,13 +111,13 @@ const LeaveManagement = () => {
                   </td>
                   <td>{lv.from_date} <span className="mx-1">→</span> {lv.to_date}</td>
                   <td>
-                    <span className={`badge rounded-pill ${lv.status === 'Approved' ? 'bg-success' : lv.status === 'Rejected' ? 'bg-danger' : 'bg-warning text-dark'}`}>
-                       {lv.status.toUpperCase()}
+                    <span className={`badge rounded-pill ${lv.status?.toLowerCase() === 'approved' ? 'bg-success' : lv.status?.toLowerCase() === 'rejected' ? 'bg-danger' : 'bg-warning text-dark'}`}>
+                       {lv.status?.toUpperCase()}
                     </span>
                   </td>
                   {user.role !== 'employee' && (
                     <td>
-                      {lv.status === 'Pending' && (
+                      {lv.status?.toLowerCase() === 'pending' && (
                         <div className="d-flex gap-2">
                           <button onClick={() => updateStatus(lv.id, 'Approved')} className="btn btn-sm btn-success">Approve</button>
                           <button onClick={() => updateStatus(lv.id, 'Rejected')} className="btn btn-sm btn-danger">Reject</button>
@@ -122,6 +142,11 @@ const LeaveManagement = () => {
               </div>
               <form onSubmit={handleApply}>
                 <div className="modal-body">
+                  {error && (
+                    <div className="alert alert-danger small py-2 mb-3">
+                      <span className="fw-bold">SYNC ERROR:</span> {error}
+                    </div>
+                  )}
                   <div className="row g-3">
                     <div className="col-12">
                       <label className="form-label small fw-bold text-secondary">Leave Classification</label>
@@ -147,8 +172,10 @@ const LeaveManagement = () => {
                   </div>
                 </div>
                 <div className="modal-footer border-0 pt-0">
-                  <button type="button" className="btn btn-light" onClick={() => setShowApply(false)}>Abort</button>
-                  <button type="submit" className="btn btn-primary px-4 fw-bold shadow">Initialize Protocol</button>
+                  <button type="button" className="btn btn-light" onClick={() => setShowApply(false)} disabled={loading}>Abort</button>
+                  <button type="submit" className="btn btn-primary px-4 fw-bold shadow" disabled={loading}>
+                    {loading ? 'INITIALIZING...' : 'Initialize Protocol'}
+                  </button>
                 </div>
               </form>
             </div>

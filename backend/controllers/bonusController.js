@@ -10,9 +10,11 @@ export const assignBonus = async (req, res) => {
 };
 
 export const getBonuses = async (req, res) => {
-    const { user_id } = req.query;
+    const { user_id, id, role } = req.query;
+    const targetId = id || user_id;
+    
     try {
-        const result = user_id ? await Bonus.getByUser(user_id) : await Bonus.getAll();
+        const result = targetId ? await Bonus.getByUser(targetId) : await Bonus.getAll();
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching bonuses', error: error.message });

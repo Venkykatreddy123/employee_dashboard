@@ -21,8 +21,8 @@ const Leave = {
 
   apply: async (data) => {
     return await db.execute({
-      sql: 'INSERT INTO leaves (user_id, from_date, to_date, status) VALUES (?, ?, ?, "pending")',
-      args: [data.user_id, data.from_date, data.to_date]
+      sql: "INSERT INTO leaves (user_id, from_date, to_date, leave_type, reason, status) VALUES (?, ?, ?, ?, ?, 'pending')",
+      args: [data.user_id, data.from_date, data.to_date, data.leave_type, data.reason]
     });
   },
   

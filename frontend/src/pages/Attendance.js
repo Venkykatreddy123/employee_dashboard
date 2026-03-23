@@ -12,8 +12,11 @@ const Attendance = () => {
 
   const fetchData = async () => {
     try {
+      const attUrl = (user.role === 'admin' || user.role === 'manager') 
+        ? `/attendance?role=${user.role}` 
+        : `/attendance?role=${user.role}&user_id=${user.id}`;
       const [attRes, userRes] = await Promise.all([
-        api.get(`/attendance?user_id=${user.id}`),
+        api.get(attUrl),
         user.role !== 'employee' ? api.get('/users') : Promise.resolve({ data: [] })
       ]);
       setAttendance(attRes.data);

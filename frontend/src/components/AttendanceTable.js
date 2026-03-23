@@ -20,7 +20,7 @@ const AttendanceTable = ({ attendance }) => {
         <tbody>
           {attendance.map((att) => (
             <tr key={att.id}>
-              <td>{att.employee_name}</td>
+              <td>{att.user_name}</td>
               <td>{att.date}</td>
               <td>{formatTime(att.check_in)}</td>
               <td>{formatTime(att.check_out)}</td>

@@ -14,27 +14,48 @@ import {
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
+  const [error, setError] = useState(null);
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.warn('[Dashboard] No token found, skipping stats fetch.');
-        return;
-      }
+  const fetchStats = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('Unauthorized access. Please log in protocol.');
+      return;
+    }
 
-      try {
-        const { data } = await api.get(`/dashboard/stats?role=${user.role}&id=${user.id}`);
-        setStats(data);
-      } catch (err) {
-        console.error('Error fetching dashboard stats:', err);
-      }
-    };
+    try {
+      setError(null);
+      const { data } = await api.get(`/dashboard/stats?role=${user.role}&id=${user.id}`);
+      setStats(data);
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+      setError('Communication sync failure: Unable to retrieve analytics nodes.');
+    }
+  };
+
+  useEffect(() => {
     fetchStats();
   }, [user.role, user.id]);
 
-  if (!stats) return <div className="p-5 text-center">Initialising Dashboard Analytics...</div>;
+  if (error) {
+    return (
+      <div className="p-5 text-center">
+        <div className="alert alert-danger mx-auto" style={{ maxWidth: '500px' }}>
+          <h5 className="fw-bold">SYNC ERROR</h5>
+          <p>{error}</p>
+          <button className="btn btn-outline-danger btn-sm mt-3" onClick={fetchStats}>Manual Retry Protocol</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) return (
+    <div className="p-5 text-center">
+      <div className="spinner-border text-primary mb-3" role="status"></div>
+      <div className="text-secondary fw-bold animate-pulse">Initialising Dashboard Analytics...</div>
+    </div>
+  );
 
   const adminCards = [
     { title: 'Total Workforce', value: stats.summary.totalEmployees || 0, icon: <Users size={24} />, color: '#6366f1', bg: '#eef2ff' },

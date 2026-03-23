@@ -7,7 +7,7 @@ const router = express.Router();
 router.use(authMiddleware);
 
 router.get('/', leaveController.getLeaves);
-router.post('/apply', leaveController.applyLeave);
-router.put('/:id/status', leaveController.updateStatus);
+router.post('/', leaveController.applyLeave);
+router.put('/:id', leaveController.updateStatus);
 
 export default router;

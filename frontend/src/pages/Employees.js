@@ -8,6 +8,8 @@ const Employees = () => {
   const [showModal, setShowModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [filterRole, setFilterRole] = useState('All');
+  const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState('');
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -38,6 +40,8 @@ const Employees = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setFormError('');
     try {
       console.log(`[Employees] ${editMode ? 'Updating' : 'Creating'} user:`, currentEmp.email);
       if (editMode) {
@@ -50,7 +54,9 @@ const Employees = () => {
       resetForm();
     } catch (err) {
       console.error('[Employees] Submit Error:', err);
-      alert('Error saving user: ' + (err.response?.data?.message || err.message));
+      setFormError(err.response?.data?.message || 'Protocol Failure: Unable to synchronize record.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -176,6 +182,11 @@ const Employees = () => {
               </div>
               <form onSubmit={handleSubmit}>
                 <div className="modal-body">
+                  {formError && (
+                    <div className="alert alert-danger small py-2 mb-3">
+                      <span className="fw-bold">SYNC ERROR:</span> {formError}
+                    </div>
+                  )}
                   <div className="row g-3">
                     <div className="col-md-12">
                       <label className="form-label small fw-bold text-secondary">Full Identity Name</label>
@@ -200,8 +211,10 @@ const Employees = () => {
                   </div>
                 </div>
                 <div className="modal-footer border-0 pt-0">
-                  <button type="button" className="btn btn-light" onClick={() => setShowModal(false)}>Abort</button>
-                  <button type="submit" className="btn btn-primary px-4 fw-bold shadow">Synchronize</button>
+                  <button type="button" className="btn btn-light" onClick={() => setShowModal(false)} disabled={loading}>Abort</button>
+                  <button type="submit" className="btn btn-primary px-4 fw-bold shadow" disabled={loading}>
+                    {loading ? 'SYNCHRONIZING...' : 'Synchronize'}
+                  </button>
                 </div>
               </form>
             </div>
