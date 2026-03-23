@@ -15,17 +15,20 @@ api.interceptors.request.use(
     const token = localStorage.getItem('token');
     
     // Debugging: log token presence and request URL
-    console.log(`[API Request] URL: ${config.url}`);
-    console.log(`[Token Presence]: ${token ? '✅ Token present' : '❌ Token missing'}`);
+    console.log(`[Frontend API] Initializing request: ${config.method?.toUpperCase()} ${config.url}`);
     
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Safety check for valid token strings
+    if (token && token !== 'null' && token !== 'undefined') {
+      config.headers.Authorization = `Bearer ${token.trim()}`;
+      console.log(`[Frontend API] ✅ Token attached to header.`);
+    } else {
+      console.warn(`[Frontend API] ⚠️ No valid token found in storage.`);
     }
     
     return config;
   },
   (error) => {
-    console.error('[API Request Error]:', error);
+    console.error('[Frontend API] ❌ Request preparation error:', error);
     return Promise.reject(error);
   }
 );
@@ -33,27 +36,27 @@ api.interceptors.request.use(
 // Response interceptor: handle token expiration and debugging
 api.interceptors.response.use(
   (response) => {
-    // Debugging: log successful response
-    console.log(`[API Response] Success for ${response.config.url}:`, response.data);
+    // Debugging: log successful response for developmental clarity
+    console.log(`[Frontend API] ✅ Server response received for: ${response.config.url}`);
     return response;
   },
   (error) => {
     const { response } = error;
     
-    // Debugging: log API errors
-    console.error(`[API Response Error] URL: ${error.config?.url}:`, response?.data || error.message);
+    // Debugging: log API errors with clear messaging
+    console.error(`[Frontend API] ❌ Failure detected at: ${error.config?.url}. Status: ${response?.status || 'Unknown'}`);
     
-    // If 401 (Unauthorized) or token expired, redirect to login
-    if (response && response.status === 401) {
-      console.warn('Unauthorized! Redirecting to login page.');
+    // If 401 (Unauthorized) or 403 (Forbidden/Expired Token)
+    if (response && (response.status === 401 || response.status === 403)) {
+      console.warn('[Frontend API] Access revoked or token expired. Cleaning session and redirecting...');
       
-      // Clean up sensitive data
+      // Clean up session artifacts to prevent infinite loops or false auth state
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       
-      // Force redirect if not already on the login page
+      // Redirect to login page if we aren't already there
       if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+        window.location.href = '/login?session_expired=true';
       }
     }
     

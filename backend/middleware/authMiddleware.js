@@ -5,18 +5,30 @@ dotenv.config();
 
 const authMiddleware = (req, res, next) => {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    console.log(`[Middleware] Incoming Request: ${req.method} ${req.originalUrl}`);
+    console.log(`[Middleware] Auth Header: ${authHeader || 'Missing'}`);
 
-    if (!token) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        console.warn('[Middleware] ❌ Access Denied: No Bearer Token Provided');
         return res.status(401).json({ message: 'Access Denied: No Token Provided!' });
     }
 
+    const token = authHeader.split(' ')[1];
+
+    if (!token || token === 'null' || token === 'undefined') {
+        console.warn(`[Middleware] ❌ Access Denied: Invalid token string: ${token}`);
+        return res.status(401).json({ message: 'Access Denied: Invalid Token Format!' });
+    }
+
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallbacksecret');
-        req.user = decoded; // Contains id, email, role
+        const secret = process.env.JWT_SECRET || 'supersecretkey123';
+        const decoded = jwt.verify(token, secret);
+        console.log(`[Middleware] ✅ Token Verified for User: ${decoded.email} (${decoded.role})`);
+        req.user = decoded; 
         next();
     } catch (err) {
-        res.status(403).json({ message: 'Invalid or Expired Token!' });
+        console.error(`[Middleware] ❌ Token Verification Failed: ${err.message}`);
+        res.status(403).json({ message: 'Invalid or Expired Token!', error: err.message });
     }
 };
 

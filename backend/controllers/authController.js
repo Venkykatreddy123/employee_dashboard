@@ -60,6 +60,7 @@ export const register = async (req, res) => {
 // Login
 export const login = async (req, res) => {
     const { email, password } = req.body;
+    console.log(`[Auth Controller] Login attempt for Email: ${email}`);
 
     if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required!' });
@@ -68,19 +69,27 @@ export const login = async (req, res) => {
     try {
         const user = await findUserByEmail(email);
         if (!user) {
+            console.warn(`[Auth Controller] ❌ User not found: ${email}`);
             return res.status(401).json({ message: 'Invalid credentials!' });
         }
 
+        console.log(`[Auth Controller] User found. Authentging...`);
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+            console.warn(`[Auth Controller] ❌ Password mismatch for: ${email}`);
             return res.status(401).json({ message: 'Invalid credentials!' });
         }
 
+        const secret = process.env.JWT_SECRET || 'supersecretkey123';
+        console.log(`[Auth Controller] ✅ Authentication successful. Generating Token...`);
+        
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
-            JWT_SECRET,
+            secret,
             { expiresIn: '24h' }
         );
+
+        console.log(`[Auth Controller] ✅ Token generated successfully. Returning to client.`);
 
         res.status(200).json({
             message: 'Login successful!',
@@ -93,7 +102,7 @@ export const login = async (req, res) => {
             }
         });
     } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ message: 'Error during login', error: error.message });
+        console.error('[Auth Controller] ❌ Login sequence failure:', error);
+        res.status(500).json({ message: 'Internal Server Error during login', error: error.message });
     }
 };

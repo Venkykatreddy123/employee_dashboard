@@ -15,19 +15,35 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    console.log(`[Login Process] Attempting protocol access for: ${email}`);
+
     try {
-      const { data } = await api.post('/auth/login', { email, password });
+      const response = await api.post('/auth/login', { email, password });
+      const { data } = response;
       
+      console.log('[Login Process] Server Response Received. Validating token...');
+      
+      if (!data.token) {
+        console.error('[Login Process] ❌ Security Flaw: Server returned success but NO TOKEN.');
+        throw new Error('Server protocol breach: No session token returned.');
+      }
+
       // Store core auth data
+      console.log('[Login Process] ✅ Token validated. Storing session artifacts...');
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
+      
+      console.log(`[Login Process] Session verified for: ${data.user.name} (${data.user.role})`);
       
       const role = data.user.role;
       if (role === 'admin') navigate('/admin');
       else if (role === 'manager') navigate('/manager');
       else navigate('/employee');
     } catch (err) {
-      setError(err.response?.data?.message || 'Security Breach: Invalid Credentials');
+      console.error('[Login Process] ❌ Protocol initialization failure:', err);
+      const status = err.response?.status;
+      const msg = err.response?.data?.message || err.message;
+      setError(status === 401 ? 'Security Failure: Invalid Personnel Credentials' : `Sync Error [${status}]: ${msg}`);
     } finally {
       setLoading(false);
     }
