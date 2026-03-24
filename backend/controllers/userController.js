@@ -24,19 +24,14 @@ export const getUserById = async (req, res) => {
 export const addUser = async (req, res) => {
     const { name, email, password, role } = req.body;
 
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password are required' });
+    // Task 3 & 6: Validate request fields
+    if (!name || !email || !password) {
+        return res.status(400).json({ message: 'Missing required fields: name, email, and password are required.' });
     }
 
     try {
-        // Check if user exists
-        const users = await User.getAll();
-        const exists = users.find(u => u.email === email);
-        if (exists) {
-            return res.status(409).json({ message: 'Conflict: Email already exists in the system.' });
-        }
-
-        // Hash password
+        // Task 1 & 2: Email uniqueness is enforced by UNIQUE constraint in DB 
+        // but we handle it gracefully here for better error message.
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -44,13 +39,22 @@ export const addUser = async (req, res) => {
             name,
             email,
             password: hashedPassword,
-            role
+            role: role || 'employee'
         });
 
-        res.status(201).json({ id: result.id, message: 'User created successfully' });
+        // Task 5: Return proper response format
+        res.status(201).json({ 
+            message: "User created successfully", 
+            userId: result.id 
+        });
     } catch (error) {
-        console.error('Add User Error:', error);
-        res.status(500).json({ message: 'Error creating user', error: error.message });
+        // Task 3: Handle duplicate email specifically
+        if (error.message.includes('UNIQUE constraint failed: users.email')) {
+            return res.status(409).json({ message: 'Email already exists' });
+        }
+        
+        console.error('Create User Failure:', error);
+        res.status(500).json({ message: 'Database protocol error: Unable to initialize new user.', error: error.message });
     }
 };
 

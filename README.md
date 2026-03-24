@@ -1,111 +1,103 @@
-# EMP PRO | Enterprise Productivity Dashboard
+# 💠 EMP ADMIN: Senior Employee Management Dashboard
 
-**EMP PRO** is a high-performance, modern, and fully integrated Employee Productivity Management system. Designed with a clean SaaS-style aesthetic, it empowers organizations to manage team capacity, monitor project risks, and streamline HR workflows through specialized dashboards for Employees, Managers, and Admins.
+A full-stack, enterprise-grade Employee Productivity and Presence Management system. Built with **React**, **Node.js (Express)**, and **Turso (LibSQL/SQLite)**, featuring **JWT-powered Security Protocols** and role-based operational oversight.
 
 ---
 
-## 🚀 Core Features
+## 🚀 Key Evolutionary Features
 
-### 🏢 Role-Based Dashboards
-- **Employee Dashboard**: Manage work sessions, track breaks, view productivity history, and submit leave requests.
-- **Manager Dashboard**: Comprehensive team overview with Quick Approvals for leave, department-level metrics, and real-time team capacity tracking.
-- **Admin Dashboard**: Advanced system control including user management, role assignment, active session monitoring, and automated database backups.
+### 🔐 Multi-Tier Authorization
+- **Admin**: Full system override, user synchronization, enterprise-wide attendance monitoring, and leave adjudication.
+- **Manager**: Team directory oversight, performance tracking, and rest cycle management.
+- **Employee**: Individual "Mission Hub" with session tracking, leave applications, and productivity logs.
 
-### ⚡ Interactive Team Pulse
-The Manager Dashboard features an intelligent **Team Pulse** section that transforms static alerts into actionable insights:
-- **Squad Insight**: Click 'Frontend Squad' to reveal a deep-dive modal showing collective synergy scores, individual member productivity, and precise project status updates.
-- **Risk Assessment**: Interactive deadline monitoring that automatically flags 'URGENT' projects (within 7 days of deadline) and suggests mitigation strategies.
+### 📊 Real-Time Workforce Intelligence
+- **Workforce Presence Tracker**: Live check-in/out session monitoring.
+- **Human Fatigue Management**: Rest cycle (Break) tracking with "Active/In-Recovery" status indicators.
+- **Absence Management Terminal**: Multi-stage leave protocol with classification (Sick, Vacation, etc.) and audit trails.
+- **Productivity Analytics**: Visual chart representation of the team's operational output.
 
-### 📊 Advanced Analytics
-- **Performance Visualization**: Beautiful, interactive charts (via Recharts) displaying department workload distribution.
-- **Productivity Scoring**: Algorithmic productivity calculation based on work duration and session quality.
-
-### 🔐 Enterprise Architecture
-- **SaaS-Style UI**: Built with **Tailwind CSS**, **Framer Motion**, and **Inter Typography** for a premium, responsive user experience.
-- **Robust Backend**: Node.js & Express API with a tiered SQLite database architecture (primary, logs, and backups).
-- **Security**: JWT-based authentication and restricted API access via protected routes.
+### 🛡️ Security Pillars
+- **JWT Protection**: All API traffic is secured with JSON Web Tokens.
+- **Personnel Encryption**: Passwords are automatically hashed via `bcrypt`.
+- **Session Interceptors**: Client-side axios interceptors handle token injection and automatic logout on session expiration (401/403).
 
 ---
 
 ## 🛠️ Technology Stack
 
-| Layer | Technologies |
+| Layer | Technology |
 | :--- | :--- |
-| **Frontend** | React, Vite, Tailwind CSS, Framer Motion, Recharts, Lucide-React |
-| **Backend** | Node.js, Express |
-| **Database** | SQLite (via `better-sqlite3`) |
-| **Auth** | JWT (JSON Web Tokens), BCrypt.js |
+| **Frontend** | React, Axios, Lucide Icons, Chart.js, Bootstrap (Glassmorphism UI) |
+| **Backend** | Node.js, Express, JWT, Bcrypt, Dotenv |
+| **Database** | Turso (LibSQL) - Edge-ready SQLite architecture |
 
 ---
 
-## 📥 Installation & Setup
+## ⚙️ Initial Deployment Protocol
 
-### 1. Prerequisites
-- Node.js (v18.x or higher)
-- npm or yarn
-
-### 2. Manual Repository Setup
-```bash
-# Clone the repository (if applicable)
-git clone <repository-url>
-cd emp-dashboard
-```
-
-### 3. Backend Implementation
+### 1. Database Initialization
+Ensure your Turso credentials are set in the backend environment.
 ```bash
 cd backend
 npm install
-node src/index.js
+node setup-turso.js
 ```
-*The backend will start at `http://localhost:5000`. It automatically seeds a demo environment with initial users (Admin/Manager/Employee).*
+*This command initializes the `users`, `attendance`, `leaves`, `breaks`, `bonuses`, and `meetings` protocols.*
 
-### 4. Frontend Integration
+### 2. Backend Orchestration
+Configure `.env` in the `/backend` directory:
+- `PORT=5001`
+- `JWT_SECRET=your_secure_secret`
+- `TURSO_DATABASE_URL=libsql://your-db-url.turso.io`
+- `TURSO_AUTH_TOKEN=your_turso_token`
+
 ```bash
-cd ../frontend
-npm install
 npm run dev
 ```
-*The frontend will start at `http://localhost:5173`.*
 
----
-
-## 📂 Project Structure
-
-```text
-emp-dashboard/
-├── backend/
-│   ├── src/
-│   │   ├── controllers/   # Route handlers (Pulse, Leave, Auth)
-│   │   ├── db/            # SQLite schema and seeding logic
-│   │   ├── middleware/    # Auth and error protection
-│   │   └── routes/        # API endpoint definitions
-│   └── database.sqlite    # Active production data
-├── frontend/
-│   ├── src/
-│   │   ├── components/    # Reusable UI (Modals, Navigation)
-│   │   ├── pages/         # Dashboard views (Admin, Manager, Employee)
-│   │   ├── services/      # Axios API configuration
-│   │   └── index.css      # Tailwind design system
-└── README.md              # Documentation
+### 3. Frontend Activation
+Initialize the interactive cockpit.
+```bash
+cd frontend
+npm install
+npm start
 ```
 
 ---
 
-## 🔑 Credential Profiles (Demo Only)
+## 🔑 Personnel Debug Keys (Default)
 
-| Role | Email | Password |
+| Role | System Identifier | Access Key |
 | :--- | :--- | :--- |
-| **Admin** | admin@emp.com | admin123 |
-| **Manager** | manager@emp.com | manager123 |
-| **Employee** | employee@emp.com | employee123 |
+| **Admin** | `admin@company.com` | `password123` |
+| **Manager** | `manager@company.com` | `password123` |
+| **Employee** | `employee@company.com` | `password123` |
 
 ---
 
-## 📌 Development Notes
-- **Persistence**: Productivity logs and work sessions are calculated server-side in the `database.sqlite` file.
-- **Theme**: The application defaults to a "Crystal Light" theme with Indigo highlights for maximum readability and a professional enterprise feel.
-- **Resilience**: Frontend modals utilize optional chaining and defensive state management to handle loading transitions smoothly.
+## 📁 System Architecture
+```text
+├── frontend/
+│   ├── src/
+│   │   ├── api/          # Secure Axios configuration & Interceptors
+│   │   ├── components/   # Modular UI elements (Sidebar, Navbar, Charts)
+│   │   └── pages/        # Role-specific operational terminals
+├── backend/
+│   ├── controllers/      # Handshake and Data Logic
+│   ├── models/           # LibSQL Database Models
+│   ├── routes/           # Protected API endpoints
+│   └── middleware/       # Auth validation & Token decoding
+└── database/
+    └── schema.sql        # Canonical blueprint for workforce data
+```
 
 ---
 
-**© 2026 EMP PRO | Advanced Agentic Coding Project**
+## ⚖️ Operational Protocols
+- **Attendance**: Sessions must be "Concluded" via check-out for accurate hour calculation.
+- **Leaves**: Use the "Initialize Protocol" button. Admins must "Review & Adjudicate" before a status transitions from `pending`.
+- **Breaks**: Designed for "Human Fatigue Management". Tracks "In-Recovery" vs "Resumed" states.
+
+---
+*Maintained by Team Sravani - Enterprise Operational Systems.*

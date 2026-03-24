@@ -1,4 +1,5 @@
 import { db } from './db.js';
+import bcrypt from 'bcryptjs';
 
 const setup = async () => {
     try {
@@ -7,13 +8,35 @@ const setup = async () => {
         await db.execute(`
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT,
-                email TEXT UNIQUE,
-                password TEXT,
-                role TEXT CHECK(role IN ('admin','manager','employee')),
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT CHECK(role IN ('admin','manager','employee')) DEFAULT 'employee',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
+
+        // Task 7: Ensure default users exist
+        const defaultUsers = [
+            { name: 'Admin User', email: 'admin@company.com', password: 'password123', role: 'admin' },
+            { name: 'Manager User', email: 'manager@company.com', password: 'password123', role: 'manager' },
+            { name: 'Employee User', email: 'employee@company.com', password: 'password123', role: 'employee' }
+        ];
+
+        for (const u of defaultUsers) {
+            const check = await db.execute({
+                sql: 'SELECT id FROM users WHERE email = ?',
+                args: [u.email]
+            });
+            if (check.rows.length === 0) {
+                const hashedPassword = await bcrypt.hash(u.password, 10);
+                await db.execute({
+                    sql: 'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+                    args: [u.name, u.email, hashedPassword, u.role]
+                });
+                console.log(`Default user created: ${u.email}`);
+            }
+        }
 
         await db.execute(`
             CREATE TABLE IF NOT EXISTS attendance (
