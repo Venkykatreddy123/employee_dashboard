@@ -3,6 +3,7 @@ const { logActivity } = require('../db/logs');
 
 exports.applyLeave = async (req, res) => {
   const userId = req.user.id;
+  console.log("User ID from token", userId);
   const { startDate, endDate, reason } = req.body;
   try {
     const result = await db.execute({
