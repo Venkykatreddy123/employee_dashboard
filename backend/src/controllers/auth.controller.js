@@ -72,27 +72,27 @@ exports.login = async (req, res) => {
 };
 
 exports.register = async (req, res) => {
-  const { name, email, password, role, department_id } = req.body;
-  if (!name || !email || !password || !department_id) {
-    return res.status(400).json({ message: 'Name, email, password and department are required' });
-  }
-
-  try {
-    // Verify department exists
-    const deptResult = await db.execute({
-      sql: 'SELECT id FROM departments WHERE id = ?',
-      args: [department_id]
-    });
-    
-    if (deptResult.rows.length === 0) {
-      return res.status(400).json({ message: 'Invalid department' });
+    const { name, email, password, role, department_id, manager_id } = req.body;
+    if (!name || !email || !password || !department_id) {
+      return res.status(400).json({ message: 'Name, email, password and department are required' });
     }
 
-    const passwordHash = bcrypt.hashSync(password, 10);
-    const result = await db.execute({
-      sql: 'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-      args: [name, email.toLowerCase().trim(), passwordHash, (role || 'employee').toLowerCase()]
-    });
+    try {
+      // Verify department exists
+      const deptResult = await db.execute({
+        sql: 'SELECT id FROM departments WHERE id = ?',
+        args: [department_id]
+      });
+      
+      if (deptResult.rows.length === 0) {
+        return res.status(400).json({ message: 'Invalid department' });
+      }
+
+      const passwordHash = bcrypt.hashSync(password, 10);
+      const result = await db.execute({
+        sql: 'INSERT INTO users (name, email, password, role, manager_id) VALUES (?, ?, ?, ?, ?)',
+        args: [name, email.toLowerCase().trim(), passwordHash, (role || 'employee').toLowerCase(), manager_id || null]
+      });
     const userId = result.lastInsertRowid;
 
     // Generate Employee ID (EMP001, EMP002...)

@@ -5,6 +5,10 @@ import EmployeeDashboard from './pages/EmployeeDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
 import AdminPanel from './pages/AdminPanel';
 import LeaveTracker from './pages/LeaveTracker';
+import PayrollPage from './pages/PayrollPage';
+import BenefitsPage from './pages/BenefitsPage';
+import SupportPage from './pages/SupportPage';
+import PerformancePage from './pages/PerformancePage';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -44,48 +48,18 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             
-            <Route path="/" element={
-              <ProtectedRoute>
-                <Layout>
-                  <RoleBasedRedirect />
-                </Layout>
-              </ProtectedRoute>
-            } />
+            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+               <Route path="/" element={<RoleBasedRedirect />} />
+               <Route path="/dashboard" element={<EmployeeDashboard />} />
+               <Route path="/payroll" element={<PayrollPage />} />
+               <Route path="/benefits" element={<BenefitsPage />} />
+               <Route path="/support" element={<SupportPage />} />
+               <Route path="/performance" element={<PerformancePage />} />
+               <Route path="/manager" element={<ManagerDashboard />} />
+               <Route path="/admin" element={<AdminPanel />} />
+               <Route path="/leave" element={<LeaveTracker />} />
+            </Route>
 
-            <Route path="/dashboard" element={
-              <ProtectedRoute allowedRoles={['employee', 'manager', 'admin']}>
-                <Layout>
-                  <EmployeeDashboard />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/manager" element={
-              <ProtectedRoute allowedRoles={['manager', 'admin']}>
-                <Layout>
-                  <ManagerDashboard />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/admin" element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <Layout>
-                  <AdminPanel />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            <Route path="/leave" element={
-              <ProtectedRoute allowedRoles={['employee', 'manager', 'admin']}>
-                <Layout>
-                  <LeaveTracker />
-                </Layout>
-              </ProtectedRoute>
-            } />
-
-            
-            {/* Default catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AnimatePresence>
@@ -93,5 +67,6 @@ function App() {
     </Router>
   );
 }
+
 
 export default App;

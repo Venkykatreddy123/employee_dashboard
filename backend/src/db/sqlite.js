@@ -17,9 +17,11 @@ db.exec(`
     password TEXT NOT NULL,
     role TEXT CHECK(role IN ('Employee', 'Manager', 'Admin')) DEFAULT 'Employee',
     team_id INTEGER,
+    manager_id INTEGER,
     productivity_score INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (team_id) REFERENCES teams(id)
+    FOREIGN KEY (team_id) REFERENCES teams(id),
+    FOREIGN KEY (manager_id) REFERENCES users(id)
   );
 
   CREATE TABLE IF NOT EXISTS work_sessions (
@@ -54,12 +56,14 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS leave_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
+    manager_id INTEGER,
     start_date TEXT NOT NULL,
     end_date TEXT NOT NULL,
     reason TEXT NOT NULL,
     status TEXT CHECK(status IN ('Pending', 'Approved', 'Rejected')) DEFAULT 'Pending',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (manager_id) REFERENCES users(id)
   );
 
   CREATE TABLE IF NOT EXISTS system_settings (
@@ -78,17 +82,17 @@ db.exec(`
   );
 `);
 
-// Check if team_id column exists in users (migration for existing DB)
-try {
-  db.exec('ALTER TABLE users ADD COLUMN team_id INTEGER REFERENCES teams(id)');
-} catch (e) {
-  // Column might already exist
-}
-try {
-  db.exec('ALTER TABLE users ADD COLUMN productivity_score INTEGER DEFAULT 0');
-} catch (e) {
-  // Column might already exist
-}
+// Migration blocks for existing DB
+const migrations = [
+    'ALTER TABLE users ADD COLUMN manager_id INTEGER REFERENCES users(id)',
+    'ALTER TABLE users ADD COLUMN team_id INTEGER REFERENCES teams(id)',
+    'ALTER TABLE users ADD COLUMN productivity_score INTEGER DEFAULT 0',
+    'ALTER TABLE leave_requests ADD COLUMN manager_id INTEGER REFERENCES users(id)'
+];
+
+migrations.forEach(m => {
+    try { db.exec(m); } catch (e) { /* Column might exist */ }
+});
 
 // Seed Teams
 const insertTeam = db.prepare('INSERT OR IGNORE INTO teams (id, name, overall_productivity) VALUES (?, ?, ?)');
@@ -102,12 +106,12 @@ const adminPassword = bcrypt.hashSync('admin123', 10);
 const managerPassword = bcrypt.hashSync('manager123', 10);
 const employeePassword = bcrypt.hashSync('employee123', 10);
 
-const insertUser = db.prepare('INSERT OR IGNORE INTO users (name, email, password, role, team_id, productivity_score) VALUES (?, ?, ?, ?, ?, ?)');
-insertUser.run('Admin User', 'admin@emp.com', adminPassword, 'Admin', null, 98);
-insertUser.run('Manager One', 'manager@emp.com', managerPassword, 'Manager', null, 95);
-insertUser.run('John Employee', 'john@emp.com', employeePassword, 'Employee', 1, 92);
-insertUser.run('Sarah Frontend', 'sarah@emp.com', employeePassword, 'Employee', 1, 96);
-insertUser.run('Mike Backend', 'mike@emp.com', employeePassword, 'Employee', 2, 85);
+const insertUser = db.prepare('INSERT OR IGNORE INTO users (id, name, email, password, role, team_id, manager_id, productivity_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+insertUser.run(1, 'Admin User', 'admin@emp.com', adminPassword, 'Admin', null, null, 98);
+insertUser.run(2, 'Manager One', 'manager@emp.com', managerPassword, 'Manager', null, 1, 95);
+insertUser.run(3, 'John Employee', 'john@emp.com', employeePassword, 'Employee', 1, 2, 92);
+insertUser.run(4, 'Sarah Frontend', 'sarah@emp.com', employeePassword, 'Employee', 1, 2, 96);
+insertUser.run(5, 'Mike Backend', 'mike@emp.com', employeePassword, 'Employee', 2, 2, 85);
 
 // Seed Projects
 const insertProject = db.prepare('INSERT OR IGNORE INTO projects (name, team_id, status, progress, deadline) VALUES (?, ?, ?, ?, ?)');

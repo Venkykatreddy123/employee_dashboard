@@ -4,8 +4,11 @@ const { getLogs } = require('../db/logs');
 exports.getAllUsers = async (req, res) => {
   try {
     const result = await db.execute(`
-      SELECT u.id, u.name, u.email, u.role, u.created_at, d.name AS department_name
+      SELECT u.id, u.name, u.email, u.role, u.created_at, u.manager_id, 
+             m.name as manager_name, d.name AS department_name, 
+             e.salary, e.employee_code, e.department_id
       FROM users u
+      LEFT JOIN users m ON u.manager_id = m.id
       LEFT JOIN employees e ON u.id = e.user_id
       LEFT JOIN departments d ON e.department_id = d.id
     `);
@@ -15,6 +18,38 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
+exports.updateEmployeeDetails = async (req, res) => {
+    const { id, name, role, email, department_id, salary, manager_id } = req.body;
+    const adminId = req.user.id;
+    try {
+        // Check old salary for history
+        const oldResult = await db.execute({
+            sql: 'SELECT salary FROM employees WHERE user_id = ?',
+            args: [id]
+        });
+        const oldSalary = oldResult.rows[0]?.salary || 0;
+
+        await db.execute({
+            sql: 'UPDATE users SET name = ?, role = ?, email = ?, manager_id = ? WHERE id = ?',
+            args: [name, role, email, manager_id, id]
+        });
+        await db.execute({
+            sql: 'UPDATE employees SET name = ?, role = ?, department_id = ?, salary = ? WHERE user_id = ?',
+            args: [name, role, department_id, salary, id]
+        });
+
+        if (salary !== oldSalary) {
+            await db.execute({
+                sql: 'INSERT INTO salary_history (user_id, old_salary, new_salary, updated_by) VALUES (?, ?, ?, ?)',
+                args: [id, oldSalary, salary, adminId]
+            });
+        }
+
+        res.json({ message: 'Employee details updated successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
 
 exports.updateUserRole = async (req, res) => {
   const { id, role } = req.body;
@@ -49,6 +84,21 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+exports.getSalaryHistory = async (req, res) => {
+    try {
+        const result = await db.execute(`
+            SELECT sh.*, u.name as employee_name, ub.name as updated_by_name
+            FROM salary_history sh
+            JOIN users u ON sh.user_id = u.id
+            JOIN users ub ON sh.updated_by = ub.id
+            ORDER BY sh.updated_at DESC
+        `);
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+
 exports.getSystemSettings = async (req, res) => {
   try {
     const result = await db.execute('SELECT * FROM system_settings');
@@ -82,39 +132,15 @@ exports.getActivityLogs = async (req, res) => {
 
 exports.getPerformanceMetrics = async (req, res) => {
   try {
-    const users = await db.execute(`
-      SELECT u.id, d.name AS department_name 
-      FROM users u
-      LEFT JOIN employees e ON u.id = e.user_id
-      LEFT JOIN departments d ON e.department_id = d.id
+    const result = await db.execute(`
+        SELECT d.name as role, AVG(u.productivity_score) as avg_work_duration 
+        FROM departments d
+        LEFT JOIN employees e ON d.id = e.department_id
+        LEFT JOIN users u ON e.user_id = u.id
+        GROUP BY d.name
     `);
-    const attendance = await db.execute("SELECT user_id, login_time, logout_time FROM attendance");
-    
-    // Group by department
-    const deptStats = {};
-    users.rows.forEach(u => {
-        const dept = u.department_name || 'Unassigned';
-        if (!deptStats[dept]) deptStats[dept] = { total_work: 0, count: 0 };
-    });
 
-    attendance.rows.forEach(a => {
-        const user = users.rows.find(u => u.id === a.user_id);
-        if (user) {
-            const dept = user.department_name || 'Unassigned';
-            const start = new Date(a.login_time);
-            const end = a.logout_time ? new Date(a.logout_time) : new Date();
-            const dur = Math.floor((end - start) / 1000);
-            deptStats[dept].total_work += dur;
-            deptStats[dept].count += 1;
-        }
-    });
-
-    const result = Object.keys(deptStats).map(dept => ({
-        role: dept, // Keep property name 'role' for frontend compatibility if needed, though 'department' is better
-        avg_work_duration: deptStats[dept].count > 0 ? (deptStats[dept].total_work / deptStats[dept].count) : 0
-    }));
-
-    res.json(result);
+    res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -140,3 +166,4 @@ exports.getActiveSessions = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 }
+

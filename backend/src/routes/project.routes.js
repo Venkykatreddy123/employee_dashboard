@@ -6,8 +6,9 @@ const { protect, authorize } = require('../middleware/auth.middleware');
 // All project routes require authentication
 router.get('/', protect, getProjects);
 
-// Only manager can create/assign projects
-router.post('/', protect, authorize(['manager']), createProject);
-router.post('/assign', protect, authorize(['manager']), assignProject);
+// Only manager/admin can create/assign projects
+router.post('/', protect, authorize(['manager', 'admin']), createProject);
+router.post('/assign', protect, authorize(['manager', 'admin']), assignProject);
+
 
 module.exports = router;

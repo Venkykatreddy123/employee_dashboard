@@ -33,18 +33,34 @@ const pulseRoutes = require('./routes/pulse.routes');
 const employeeRoutes = require('./routes/employee.routes');
 const departmentRoutes = require('./routes/department.routes');
 const projectRoutes = require('./routes/project.routes');
+const payrollRoutes = require('./routes/payroll.routes');
+const taxRoutes = require('./routes/tax.routes');
+const benefitsRoutes = require('./routes/benefits.routes');
+const supportRoutes = require('./routes/support.routes');
+const tasksRoutes = require('./routes/tasks.routes');
+const managerRoutes = require('./routes/manager.routes');
 
+// Public Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/time', protect, timeRoutes);
-app.use('/api/leave', protect, leaveRoutes);
-app.use('/api/admin', protect, authorize(['Admin', 'Manager']), adminRoutes);
-app.use('/api/pulse', protect, pulseRoutes);
-app.use('/api/employees', protect, employeeRoutes);
+app.get('/health', (req, res) => res.send('API is running...'));
+app.get("/", (req, res) => res.send("Backend is running 🚀"));
+app.get("/api", (req, res) => res.json({ message: "API is working ✅" }));
+
+// Protected Routes (RBAC handled within route files)
+app.use('/api/time', timeRoutes);
+app.use('/api/leave', leaveRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/pulse', pulseRoutes);
+app.use('/api/manager', managerRoutes);
+app.use('/api/employees', employeeRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/payroll', payrollRoutes);
+app.use('/api/tax', taxRoutes);
+app.use('/api/benefits', benefitsRoutes);
+app.use('/api/support', supportRoutes);
+app.use('/api/tasks', tasksRoutes);
 
-
-app.get('/health', (req, res) => res.send('API is running...'));
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
@@ -55,64 +71,11 @@ app.use((err, req, res, next) => {
             : err.message
     });
 });
-app.get("/", (req, res) => {
-    res.send("Backend is running 🚀");
-});
 
-app.get("/api", (req, res) => {
-    res.json({ message: "API is working ✅" });
-});
-app.get("/fix-user", async (req, res) => {
-    const bcrypt = require("bcrypt");
-    const { db } = require("./db/db");
-
-    try {
-        console.log("[DEBUG] Fixing user data...");
-        await db.execute("PRAGMA foreign_keys = OFF");
-
-        // Clear tables in reverse order of dependencies
-        await db.execute("DELETE FROM leave_requests");
-        await db.execute("DELETE FROM project_assignments");
-        await db.execute("DELETE FROM projects");
-        await db.execute("DELETE FROM attendance");
-        await db.execute("DELETE FROM breaks");
-        await db.execute("DELETE FROM meetings");
-        await db.execute("DELETE FROM activity_logs");
-        await db.execute("DELETE FROM employees");
-        await db.execute("DELETE FROM users");
-        await db.execute("DELETE FROM departments");
-
-        // 1. Insert Departments first
-        await db.execute("INSERT INTO departments (id, name) VALUES (1, 'Engineering')");
-        await db.execute("INSERT INTO departments (id, name) VALUES (2, 'HR')");
-
-        const hashed = await bcrypt.hash("admin123", 10);
-
-        // 2. Insert User
-        await db.execute({
-            sql: `INSERT INTO users (id, name, email, password, role)
-                  VALUES (?, ?, ?, ?, ?)`,
-            args: [1, 'Admin', 'admin@test.com', hashed, 'admin']
-        });
-
-        // 3. Insert Employee with ALL required columns
-        await db.execute({
-            sql: `INSERT INTO employees (id, user_id, name, role, department_id, employee_code)
-                  VALUES (?, ?, ?, ?, ?, ?)`,
-            args: [1, 1, 'Admin', 'admin', 1, 'EMP001']
-        });
-
-        await db.execute("PRAGMA foreign_keys = ON");
-        console.log("[DEBUG] User data fixed successfully.");
-        res.send("User fixed ✅");
-
-    } catch (err) {
-        console.error("FIX ERROR:", err);
-        res.status(500).send(`Fix failed ❌: ${err.message}`);
-    }
-});
 const PORT = process.env.PORT || 5000;
+
 app.listen(PORT, () => {
+
     console.log(`Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Lock, Mail, Loader2, Zap, ArrowRight, AlertCircle, Info } from 'lucide-react';
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('john@emp.com');
+  const [email, setEmail] = useState('employee@emp.pro');
   const [password, setPassword] = useState('employee123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -141,9 +141,9 @@ const LoginPage = () => {
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Quick Access</p>
           <div className="flex flex-wrap gap-2 justify-center">
             {[
-              { role: 'Admin', email: 'admin@emp.com', p: 'admin123', color: 'bg-amber-100 text-amber-700' },
-              { role: 'Manager', email: 'manager@emp.com', p: 'manager123', color: 'bg-blue-100 text-blue-700' },
-              { role: 'Employee', email: 'john@emp.com', p: 'employee123', color: 'bg-emerald-100 text-emerald-700' }
+              { role: 'Admin', email: 'admin@emp.pro', p: 'admin123', color: 'bg-amber-100 text-amber-700' },
+              { role: 'Manager', email: 'manager@emp.pro', p: 'manager123', color: 'bg-blue-100 text-blue-700' },
+              { role: 'Employee', email: 'employee@emp.pro', p: 'employee123', color: 'bg-emerald-100 text-emerald-700' }
             ].map(mock => (
               <button
                 key={mock.role}

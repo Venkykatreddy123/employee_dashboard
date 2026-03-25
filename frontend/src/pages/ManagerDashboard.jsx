@@ -51,9 +51,12 @@ const ManagerDashboard = () => {
     const [pulseLoading, setPulseLoading] = useState(false);
     const [newMember, setNewMember] = useState({ name: '', email: '', password: '', role: 'Employee' });
     const [projects, setProjects] = useState([]);
+    const [tasks, setTasks] = useState([]);
     const [newProject, setNewProject] = useState({ name: '', description: '', deadline: '' });
+    const [newTask, setNewTask] = useState({ title: '', description: '', priority: 'Medium', due_date: '', assigned_to: '' });
     const [assignment, setAssignment] = useState({ project_id: '', employee_id: '' });
     const [projectLoading, setProjectLoading] = useState(false);
+    const [taskLoading, setTaskLoading] = useState(false);
 
     const fetchData = async () => {
         try {
@@ -68,8 +71,16 @@ const ManagerDashboard = () => {
             setMetrics(metricsRes.data);
             setTeamLeaves(teamLeavesRes.data || []);
             fetchProjects();
+            fetchManagedTasks();
         } catch (err) { console.error(err) }
         finally { setLoading(false) }
+    };
+
+    const fetchManagedTasks = async () => {
+        try {
+            const { data } = await api.get('/tasks/managed');
+            setTasks(data);
+        } catch (err) { console.error(err); }
     };
 
     const fetchProjects = async () => {
@@ -123,6 +134,18 @@ const ManagerDashboard = () => {
             fetchProjects();
         } catch (err) { alert(err.response?.data?.error || 'Failed to assign project'); }
         finally { setProjectLoading(false); }
+    };
+
+    const handleCreateTask = async (e) => {
+        e.preventDefault();
+        try {
+            setTaskLoading(true);
+            await api.post('/tasks', newTask);
+            setNewTask({ title: '', description: '', priority: 'Medium', due_date: '', assigned_to: '' });
+            fetchManagedTasks();
+            alert('Task assigned successfully!');
+        } catch (err) { alert(err.response?.data?.error || 'Failed to assign task'); }
+        finally { setTaskLoading(false); }
     };
 
     const COLORS = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
@@ -324,27 +347,25 @@ const ManagerDashboard = () => {
 
                         <div className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/50">
                             <h3 className="text-xl font-black text-slate-900 mb-6 flex items-center gap-2">
-                                <Users size={20} className="text-indigo-600" /> Assign Project
+                                <History size={20} className="text-indigo-600" /> Quick Task Assignment
                             </h3>
-                            <form onSubmit={handleAssignProject} className="space-y-4">
+                            <form onSubmit={handleCreateTask} className="space-y-4">
+                                <div className="space-y-1">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Task Title</label>
+                                    <input
+                                        value={newTask.title}
+                                        onChange={e => setNewTask({ ...newTask, title: e.target.value })}
+                                        className="w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold focus:border-indigo-600 transition-all outline-none"
+                                        placeholder="e.g. Implement API Auth"
+                                        required
+                                    />
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Project</label>
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Assign To</label>
                                         <select
-                                            value={assignment.project_id}
-                                            onChange={e => setAssignment({ ...assignment, project_id: e.target.value })}
-                                            className="w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold focus:border-indigo-600 transition-all outline-none"
-                                            required
-                                        >
-                                            <option value="">Choose project...</option>
-                                            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                        </select>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Select Employee</label>
-                                        <select
-                                            value={assignment.employee_id}
-                                            onChange={e => setAssignment({ ...assignment, employee_id: e.target.value })}
+                                            value={newTask.assigned_to}
+                                            onChange={e => setNewTask({ ...newTask, assigned_to: e.target.value })}
                                             className="w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold focus:border-indigo-600 transition-all outline-none"
                                             required
                                         >
@@ -352,52 +373,77 @@ const ManagerDashboard = () => {
                                             {team.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                                         </select>
                                     </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Due Date</label>
+                                        <input
+                                            type="date"
+                                            value={newTask.due_date}
+                                            onChange={e => setNewTask({ ...newTask, due_date: e.target.value })}
+                                            className="w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold focus:border-indigo-600 transition-all outline-none"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                     <div className="space-y-1">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Priority</label>
+                                        <select
+                                            value={newTask.priority}
+                                            onChange={e => setNewTask({ ...newTask, priority: e.target.value })}
+                                            className="w-full p-4 bg-slate-50 border-2 border-transparent rounded-2xl font-bold focus:border-indigo-600 transition-all outline-none"
+                                        >
+                                            <option value="Low">Low</option>
+                                            <option value="Medium">Medium</option>
+                                            <option value="High">High</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <button
                                     type="submit"
-                                    disabled={projectLoading}
+                                    disabled={taskLoading}
                                     className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black hover:bg-black transition-all shadow-lg shadow-slate-200 flex items-center justify-center gap-2"
                                 >
-                                    {projectLoading ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
-                                    Assign Employee
+                                    {taskLoading ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} />}
+                                    Assign Task
                                 </button>
                             </form>
                         </div>
                     </div>
 
-                    {/* Project List */}
+                    {/* Task List */}
                     <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/50">
                         <h3 className="text-2xl font-black text-slate-900 mb-8 flex items-center gap-3">
-                            <Briefcase className="text-indigo-600" size={24} /> Active Projects
+                            <Target className="text-indigo-600" size={24} /> Managed Tasks
                         </h3>
                         <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                            {projects.length === 0 ? (
+                            {tasks.length === 0 ? (
                                 <div className="text-center py-20 opacity-40">
-                                    <Briefcase size={48} className="mx-auto mb-4" />
-                                    <p className="font-black uppercase tracking-widest text-xs">No active projects</p>
+                                    <Target size={48} className="mx-auto mb-4" />
+                                    <p className="font-black uppercase tracking-widest text-xs">No tasks assigned yet</p>
                                 </div>
                             ) : (
-                                projects.map(project => (
-                                    <div key={project.id} className="p-6 rounded-3xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-all group">
+                                tasks.map(task => (
+                                    <div key={task.id} className="p-6 rounded-3xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-all group">
                                         <div className="flex justify-between items-start mb-4">
                                             <div>
-                                                <h4 className="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{project.name}</h4>
-                                                <p className="text-xs text-slate-400 font-medium line-clamp-2 mt-1">{project.description}</p>
+                                                <h4 className="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{task.title}</h4>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Assigned to: {task.assigned_to_name}</p>
                                             </div>
-                                            <div className="text-right">
-                                                <div className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-100 rounded-full text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                                                    <Calendar size={12} className="text-indigo-600" />
-                                                    {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No deadline'}
-                                                </div>
-                                            </div>
+                                            <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
+                                                task.priority === 'High' ? 'bg-red-50 text-red-600' : 
+                                                task.priority === 'Medium' ? 'bg-amber-50 text-amber-600' : 
+                                                'bg-blue-50 text-blue-600'
+                                            }`}>{task.priority}</span>
                                         </div>
-                                        <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200/60">
-                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest w-full mb-1">Assigned Resources</p>
-                                            {project.assigned_employees ? project.assigned_employees.split(',').map((name, i) => (
-                                                <span key={i} className="px-3 py-1 bg-white rounded-lg text-[10px] font-bold text-slate-600 border border-slate-100 shadow-sm">{name}</span>
-                                            )) : (
-                                                <span className="text-[10px] font-bold text-slate-300 italic">No employees assigned yet</span>
-                                            )}
+                                        <div className="flex justify-between items-center pt-4 border-t border-slate-200/60">
+                                            <div className="flex items-center gap-2 font-black text-[10px] text-slate-500 uppercase">
+                                                <Clock size={14} /> Due: {task.due_date}
+                                            </div>
+                                            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                                task.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
+                                                task.status === 'In Progress' ? 'bg-indigo-100 text-indigo-700' :
+                                                'bg-slate-200 text-slate-700'
+                                            }`}>{task.status}</span>
                                         </div>
                                     </div>
                                 ))

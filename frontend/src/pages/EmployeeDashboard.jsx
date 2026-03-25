@@ -19,8 +19,14 @@ import {
   Loader2,
   CalendarDays,
   Timer,
-  Briefcase
+  Briefcase,
+  Wallet,
+  ShieldCheck,
+  Gift,
+  FileText,
+  Target
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { 
   AreaChart, 
   Area, 
@@ -47,6 +53,7 @@ const EmployeeDashboard = () => {
     const [override, setOverride] = useState({ type: 'attendance', startTime: '', endTime: '', reason: '' });
     const [workLogs, setWorkLogs] = useState([]);
     const [assignedProjects, setAssignedProjects] = useState([]);
+    const [tasks, setTasks] = useState([]);
     
     // UI state
     const [meetings, setMeetings] = useState({ title: '', duration: '', type: 'Internal' });
@@ -56,18 +63,30 @@ const EmployeeDashboard = () => {
     // Modal states
     const [activeModal, setActiveModal] = useState(null); // 'meeting', 'leave', 'productivity', 'workHours', 'breaks', 'meetingsList'
     const [leaves, setLeaves] = useState([]);
+    const [leaveBalances, setLeaveBalances] = useState({ sick_leave: 0, casual_leave: 0, earned_leave: 0 });
+    const [latestPayslip, setLatestPayslip] = useState(null);
+    const [taxStatus, setTaxStatus] = useState('Not Submitted');
+    const [benefitsCount, setBenefitsCount] = useState(0);
 
     const fetchData = async () => {
         try {
-            const [statusRes, statsRes, prodRes, leavesRes] = await Promise.all([
+            const [statusRes, statsRes, prodRes, leavesRes, balanceRes, payrollRes, taxRes, benefitsRes] = await Promise.all([
                 api.get('/time/status'),
                 api.get('/time/stats'),
                 api.get('/time/productivity'),
-                api.get('/leave/my')
+                api.get('/leave/my'),
+                api.get('/leave/balance'),
+                api.get('/payroll/my'),
+                api.get('/tax/my'),
+                api.get('/benefits/my')
             ]);
             setStatus(statusRes.data);
             setStats(statsRes.data);
             setLeaves(leavesRes.data || []);
+            setLeaveBalances(balanceRes.data);
+            if (payrollRes.data?.length > 0) setLatestPayslip(payrollRes.data[0]);
+            if (taxRes.data?.length > 0) setTaxStatus(taxRes.data[0].status);
+            setBenefitsCount(benefitsRes.data?.length || 0);
             
             const pData = prodRes.data || {};
             const totalWork = pData.totalWorkTime || 0;
@@ -86,6 +105,7 @@ const EmployeeDashboard = () => {
                 score: scorePercent
             });
             fetchAssignedProjects();
+            fetchMyTasks();
             
             if (statusRes.data.active && statusRes.data.startTime) {
                 const start = new Date(statusRes.data.startTime);
@@ -102,6 +122,20 @@ const EmployeeDashboard = () => {
             const { data } = await api.get('/projects');
             setAssignedProjects(data);
         } catch (error) { console.error('Error fetching assigned projects', error); }
+    };
+
+    const fetchMyTasks = async () => {
+        try {
+            const { data } = await api.get('/tasks/my');
+            setTasks(data);
+        } catch (error) { console.error('Error fetching tasks', error); }
+    };
+
+    const handleUpdateTaskStatus = async (taskId, status) => {
+        try {
+            await api.put('/tasks/status', { taskId, status });
+            fetchMyTasks();
+        } catch (error) { alert('Failed to update task status'); }
     };
 
     useEffect(() => {
@@ -223,8 +257,46 @@ const EmployeeDashboard = () => {
         } catch (error) { console.error(error); }
     };
 
+    const navigate = useNavigate();
+
     return (
-        <div className="space-y-8 animate-in fade-in duration-700">
+        <div className="space-y-10 animate-in fade-in duration-700">
+            {/* Corporate Summary Snapshot - NEW */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <EnterpriseCard 
+                    title="Last Payslip" 
+                    value={latestPayslip ? `${latestPayslip.month} ${latestPayslip.year}` : 'N/A'} 
+                    subValue={latestPayslip ? `$${latestPayslip.net_salary.toLocaleString()}` : 'Generating...'}
+                    icon={Wallet}
+                    color="#4F46E5"
+                    onClick={() => navigate('/payroll')}
+                />
+                <EnterpriseCard 
+                    title="Tax Status" 
+                    value={taxStatus} 
+                    subValue="FY 2025-26"
+                    icon={ShieldCheck}
+                    color="#10B981"
+                    onClick={() => navigate('/payroll')}
+                />
+                <EnterpriseCard 
+                    title="Flexi Benefits" 
+                    value={benefitsCount > 0 ? `${benefitsCount} Active` : 'Unelected'} 
+                    subValue="Tax Saver Plan"
+                    icon={Gift}
+                    color="#3B82F6"
+                    onClick={() => navigate('/benefits')}
+                />
+                <EnterpriseCard 
+                    title="Leave Balance" 
+                    value={`${leaveBalances.sick_leave + leaveBalances.casual_leave + leaveBalances.earned_leave} Days`} 
+                    subValue={`${leaveBalances.earned_leave} Earned left`}
+                    icon={CalendarCheck2}
+                    color="#8B5CF6"
+                    onClick={() => navigate('/leave')}
+                />
+            </div>
+
             {/* Main Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Timer Section */}
@@ -433,39 +505,85 @@ const EmployeeDashboard = () => {
             </div>
 
             {/* Assigned Projects Section */}
-            <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/50">
-                <div className="flex items-center justify-between mb-8">
-                    <div>
-                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Your Assigned Projects</h2>
-                        <p className="text-slate-400 text-sm font-medium">Ongoing tasks and project deadlines</p>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/50">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Your Action Items</h2>
+                            <p className="text-slate-400 text-sm font-medium">Pending tasks and assignments</p>
+                        </div>
+                        <Target className="text-indigo-600" size={24} />
+                    </div>
+                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                        {tasks.length === 0 ? (
+                            <div className="py-12 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 opacity-50">
+                                <p className="font-black uppercase tracking-widest text-xs">All caught up!</p>
+                            </div>
+                        ) : (
+                            tasks.map(task => (
+                                <div key={task.id} className="p-6 rounded-3xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-all group">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex-1">
+                                            <h4 className="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{task.title}</h4>
+                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Due: {task.due_date}</p>
+                                        </div>
+                                        <select 
+                                            value={task.status} 
+                                            onChange={(e) => handleUpdateTaskStatus(task.id, e.target.value)}
+                                            className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border-2 outline-none transition-all ${
+                                                task.status === 'Completed' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' :
+                                                task.status === 'In Progress' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' :
+                                                'bg-white border-slate-100 text-slate-500'
+                                            }`}
+                                        >
+                                            <option value="Pending">Pending</option>
+                                            <option value="In Progress">In Progress</option>
+                                            <option value="Completed">Completed</option>
+                                        </select>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-4 border-t border-slate-200/60">
+                                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
+                                            task.priority === 'High' ? 'bg-red-100 text-red-700' : 
+                                            task.priority === 'Medium' ? 'bg-amber-100 text-amber-700' : 
+                                            'bg-blue-100 text-blue-700'
+                                        }`}>{task.priority} Priority</span>
+                                        <p className="text-[10px] font-bold text-slate-400">Assigned by: {task.created_by_name}</p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {assignedProjects.length === 0 ? (
-                        <div className="col-span-full py-12 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 opacity-50">
-                            <p className="font-black uppercase tracking-widest text-xs">No active assignments</p>
+
+                <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/50">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Assigned Projects</h2>
+                            <p className="text-slate-400 text-sm font-medium">Ongoing project milestones</p>
                         </div>
-                    ) : (
-                        assignedProjects.map(project => (
-                            <div key={project.id} className="p-6 rounded-3xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-all group">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 shadow-sm border border-slate-50">
-                                        <Briefcase size={20} />
-                                    </div>
-                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-100 rounded-full text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                                        <Calendar size={10} className="text-indigo-600" />
-                                        {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No deadline'}
-                                    </div>
-                                </div>
-                                <h4 className="text-lg font-black text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors">{project.name}</h4>
-                                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{project.description}</p>
-                                <div className="mt-6 pt-4 border-t border-slate-200/60 flex items-center justify-between">
-                                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status: Active</span>
-                                     <ArrowUpRight size={14} className="text-slate-300 group-hover:text-indigo-600 transition-colors" />
-                                </div>
+                        <Briefcase size={24} className="text-indigo-600" />
+                    </div>
+                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                        {assignedProjects.length === 0 ? (
+                            <div className="py-12 text-center bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200 opacity-50">
+                                <p className="font-black uppercase tracking-widest text-xs">No project assignments</p>
                             </div>
-                        ))
-                    )}
+                        ) : (
+                            assignedProjects.map(project => (
+                                <div key={project.id} className="p-6 rounded-3xl bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-all group">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h4 className="text-lg font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{project.name}</h4>
+                                        <span className="text-[9px] font-black text-indigo-600 uppercase bg-indigo-50 px-2 py-1 rounded-full tracking-widest">Active</span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed mb-4">{project.description}</p>
+                                    <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                        <Calendar size={12} className="text-indigo-600" />
+                                        Deadline: {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'None'}
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
             </div>
 
@@ -762,6 +880,23 @@ const StatCard = ({ icon: Icon, label, value, color, onClick }) => (
         <div className="min-w-0">
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1 truncate">{label}</p>
             <p className="text-lg font-black text-slate-900">{value}</p>
+        </div>
+    </button>
+);
+
+const EnterpriseCard = ({ title, value, subValue, icon: Icon, color, onClick }) => (
+    <button 
+        onClick={onClick}
+        className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/50 flex items-center justify-between group hover:-translate-y-1 transition-all cursor-pointer text-left w-full relative overflow-hidden"
+    >
+        <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-3xl opacity-10" style={{ backgroundColor: color }} />
+        <div className="relative z-10">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{title}</p>
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-1">{value}</h3>
+            <p className="text-xs font-bold text-slate-500">{subValue}</p>
+        </div>
+        <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform group-hover:scale-110 relative z-10" style={{ backgroundColor: color }}>
+            <Icon size={28} />
         </div>
     </button>
 );

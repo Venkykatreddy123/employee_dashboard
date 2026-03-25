@@ -4,7 +4,7 @@ const departmentController = require('../controllers/department.controller');
 const { protect, authorize } = require('../middleware/auth.middleware');
 
 // Public/Employee access
-router.get('/', departmentController.getAllDepartments);
+router.get('/', protect, departmentController.getAllDepartments);
 
 // Admin only access for management
 router.post('/', protect, authorize(['admin']), departmentController.createDepartment);
