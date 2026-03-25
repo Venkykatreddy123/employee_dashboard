@@ -14,7 +14,7 @@ const { protect, authorize } = require('./middleware/auth.middleware');
 
 // Basic Middleware
 app.use(cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173", "https://empdashboard-wine.vercel.app"],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -64,7 +64,7 @@ app.get("/api", (req, res) => {
 });
 app.get("/fix-user", async (req, res) => {
     const bcrypt = require("bcrypt");
-    const db = require("./db/db"); // adjust path if needed
+    const { db } = require("./db/db"); // adjust path if needed
 
     const hashed = await bcrypt.hash("admin123", 10);
 
