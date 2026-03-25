@@ -1,4 +1,4 @@
-const db = require('../db/db');
+const { db } = require('../db/db');
 
 exports.createProject = async (req, res) => {
   const { name, description, deadline } = req.body;

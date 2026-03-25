@@ -1,4 +1,4 @@
-const db = require('./db');
+const { db } = require('./db');
 
 // Table initialization for activity_logs is handled in db.js or here
 const initLogs = async () => {

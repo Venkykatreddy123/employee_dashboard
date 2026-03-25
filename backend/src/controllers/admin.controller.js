@@ -1,4 +1,4 @@
-const db = require('../db/db');
+const { db } = require('../db/db');
 const { getLogs } = require('../db/logs');
 
 exports.getAllUsers = async (req, res) => {

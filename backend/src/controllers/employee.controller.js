@@ -1,4 +1,4 @@
-const db = require('../db/db');
+const { db } = require('../db/db');
 
 // Add Employee
 exports.addEmployee = async (req, res) => {

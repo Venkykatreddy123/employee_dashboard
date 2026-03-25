@@ -1,4 +1,4 @@
-const db = require('../db/db');
+const { db } = require('../db/db');
 const { logActivity } = require('../db/logs');
 
 exports.startWork = async (req, res) => {

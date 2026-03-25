@@ -67,34 +67,48 @@ app.get("/fix-user", async (req, res) => {
     const { db } = require("./db/db");
 
     try {
+        console.log("[DEBUG] Fixing user data...");
         await db.execute("PRAGMA foreign_keys = OFF");
 
+        // Clear tables in reverse order of dependencies
+        await db.execute("DELETE FROM leave_requests");
+        await db.execute("DELETE FROM project_assignments");
+        await db.execute("DELETE FROM projects");
+        await db.execute("DELETE FROM attendance");
+        await db.execute("DELETE FROM breaks");
+        await db.execute("DELETE FROM meetings");
+        await db.execute("DELETE FROM activity_logs");
         await db.execute("DELETE FROM employees");
         await db.execute("DELETE FROM users");
+        await db.execute("DELETE FROM departments");
+
+        // 1. Insert Departments first
+        await db.execute("INSERT INTO departments (id, name) VALUES (1, 'Engineering')");
+        await db.execute("INSERT INTO departments (id, name) VALUES (2, 'HR')");
 
         const hashed = await bcrypt.hash("admin123", 10);
 
-        // ✅ Insert user
+        // 2. Insert User
         await db.execute({
             sql: `INSERT INTO users (id, name, email, password, role)
                   VALUES (?, ?, ?, ?, ?)`,
             args: [1, 'Admin', 'admin@test.com', hashed, 'admin']
         });
 
-        // ✅ Insert employee (WITHOUT role)
+        // 3. Insert Employee with ALL required columns
         await db.execute({
-            sql: `INSERT INTO employees (id, user_id, name)
-                  VALUES (?, ?, ?)`,
-            args: [1, 1, 'Admin']
+            sql: `INSERT INTO employees (id, user_id, name, role, department_id, employee_code)
+                  VALUES (?, ?, ?, ?, ?, ?)`,
+            args: [1, 1, 'Admin', 'admin', 1, 'EMP001']
         });
 
         await db.execute("PRAGMA foreign_keys = ON");
-
+        console.log("[DEBUG] User data fixed successfully.");
         res.send("User fixed ✅");
 
     } catch (err) {
-        console.error("FIX ERROR:", err); // 👈 IMPORTANT
-        res.status(500).send("Fix failed ❌");
+        console.error("FIX ERROR:", err);
+        res.status(500).send(`Fix failed ❌: ${err.message}`);
     }
 });
 const PORT = process.env.PORT || 5000;

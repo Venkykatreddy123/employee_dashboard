@@ -1,4 +1,4 @@
-const db = require('../db/db');
+const { db } = require('../db/db');
 
 // Get all departments
 exports.getAllDepartments = async (req, res) => {
