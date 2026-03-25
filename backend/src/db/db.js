@@ -20,19 +20,6 @@ const db = createClient({
 
 const initDb = async () => {
   try {
-    // Drop tables (safe for development)
-    await db.execute(`DROP TABLE IF EXISTS project_assignments`);
-    await db.execute(`DROP TABLE IF EXISTS projects`);
-    await db.execute(`DROP TABLE IF EXISTS leave_requests`);
-    await db.execute(`DROP TABLE IF EXISTS meetings`);
-    await db.execute(`DROP TABLE IF EXISTS breaks`);
-    await db.execute(`DROP TABLE IF EXISTS attendance`);
-    await db.execute(`DROP TABLE IF EXISTS employees`);
-    await db.execute(`DROP TABLE IF EXISTS departments`);
-    await db.execute(`DROP TABLE IF EXISTS users`);
-    await db.execute(`DROP TABLE IF EXISTS teams`);
-    await db.execute(`DROP TABLE IF EXISTS activity_logs`);
-    await db.execute(`DROP TABLE IF EXISTS system_settings`);
 
     // Create tables
 
