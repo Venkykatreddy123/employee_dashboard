@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
@@ -15,13 +15,16 @@ export const AuthProvider = ({ children }) => {
     const storedUser = localStorage.getItem('user');
     
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
-        setIsAuthenticated(true);
-        // Still fetchMe to verify token and get fresh data
-        fetchMe();
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setIsAuthenticated(true);
+          fetchMe();
+        } catch (e) {
+          console.error('[AuthContext] Identity Refresh Failed:', e);
+          fetchMe();
+        }
       } else {
         fetchMe();
       }
@@ -32,13 +35,13 @@ export const AuthProvider = ({ children }) => {
 
   const fetchMe = async () => {
     try {
-      const { data } = await axios.get('/api/auth/me');
+      const { data } = await api.get('/auth/me');
       setUser(data);
       localStorage.setItem('user', JSON.stringify(data));
       setIsAuthenticated(true);
       setLoading(false);
     } catch (error) {
-      console.error('Fetch me error:', error);
+      console.error('[AuthContext] Lifecycle Identity Fetch Failure:', error);
       logout();
       setLoading(false);
     }
@@ -46,18 +49,23 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const { data } = await axios.post('/api/auth/login', { email, password });
+      // Identity Handshake through Production Proxy
+      const { data } = await api.post('/auth/login', { email, password });
+      
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
+      
       setUser(data.user);
       setIsAuthenticated(true);
       navigate('/');
+      
       return { success: true };
     } catch (error) {
+      const message = error.response?.data?.message || 'Login failed - Neural connection broken';
+      console.error('[AuthContext] Login Handshake Integrity Failure:', message);
       return { 
         success: false, 
-        message: error.response?.data?.message || 'Login failed' 
+        message: message 
       };
     }
   };
@@ -65,7 +73,6 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    delete axios.defaults.headers.common['Authorization'];
     setUser(null);
     setIsAuthenticated(false);
     navigate('/login');
