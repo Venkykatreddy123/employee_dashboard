@@ -19,14 +19,14 @@ const Break = {
     return result.rows;
   },
 
-  start: async (user_id, now) => {
+  start: async (user_id, now, type = 'Short Break') => {
     return await db.execute({
-      sql: 'INSERT INTO breaks (user_id, break_start) VALUES (?, ?)',
-      args: [user_id, now]
+      sql: 'INSERT INTO breaks (user_id, break_start, type) VALUES (?, ?, ?)',
+      args: [user_id, now, type]
     });
   },
   
-  end: async (id, now) => {
+  stop: async (id, now) => {
     return await db.execute({
       sql: 'UPDATE breaks SET break_end = ? WHERE id = ?',
       args: [now, id]

@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import * as tursoController from '../controllers/tursoController.js';
+
 const router = express.Router();
-const tursoController = require('../controllers/tursoController');
 
 // User operations
 router.post('/users', tursoController.createUser);
@@ -13,4 +14,4 @@ router.get('/employees', tursoController.getEmployees);
 // Attendance operations
 router.post('/attendance', tursoController.markAttendance);
 
-module.exports = router;
+export default router;

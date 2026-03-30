@@ -8,7 +8,9 @@ import {
   Coffee, 
   Heart, 
   LogOut,
-  Video
+  Video,
+  DollarSign,
+  FileText
 } from 'lucide-react';
 
 const Sidebar = ({ userRole }) => {
@@ -30,6 +32,8 @@ const Sidebar = ({ userRole }) => {
       { name: 'Break History', path: '/breaks', icon: <Coffee size={20} /> },
       { name: 'Performance/Bonus', path: '/bonuses', icon: <Heart size={20} /> },
       { name: 'Meeting Logs', path: '/meetings', icon: <Video size={20} /> },
+      { name: 'Salary Control', path: '/salary', icon: <DollarSign size={20} /> },
+      { name: 'All Payslips', path: '/payslips', icon: <FileText size={20} /> },
     ],
     manager: [
       { name: 'Team Overview', path: '/manager', icon: <LayoutDashboard size={20} /> },
@@ -37,6 +41,7 @@ const Sidebar = ({ userRole }) => {
       { name: 'Team Attendance', path: '/attendance', icon: <Clock size={20} /> },
       { name: 'Leave Approvals', path: '/leaves', icon: <CalendarDays size={20} /> },
       { name: 'Productivity Logs', path: '/meetings', icon: <Video size={20} /> },
+      { name: 'Team Payslips', path: '/payslips', icon: <FileText size={20} /> },
     ],
     employee: [
       { name: 'Personal Dash', path: '/employee', icon: <LayoutDashboard size={20} /> },
@@ -44,6 +49,7 @@ const Sidebar = ({ userRole }) => {
       { name: 'Leave Application', path: '/leaves', icon: <CalendarDays size={20} /> },
       { name: 'Break Tracker', path: '/breaks', icon: <Coffee size={20} /> },
       { name: 'My Meetings', path: '/meetings', icon: <Video size={20} /> },
+      { name: 'My Payslips', path: '/payslips', icon: <FileText size={20} /> },
     ]
   };
 

@@ -1,8 +1,8 @@
-const db = require('../db');
-const bcrypt = require('bcryptjs');
+import { db } from '../db.js';
+import bcrypt from 'bcryptjs';
 
 // Create user
-exports.createUser = async (req, res) => {
+export const createUser = async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
@@ -28,7 +28,7 @@ exports.createUser = async (req, res) => {
 };
 
 // Get all users
-exports.getUsers = async (req, res) => {
+export const getUsers = async (req, res) => {
     try {
         const result = await db.execute('SELECT id, name, email FROM users');
         res.status(200).json(result.rows);
@@ -38,7 +38,7 @@ exports.getUsers = async (req, res) => {
 };
 
 // Add employee
-exports.addEmployee = async (req, res) => {
+export const addEmployee = async (req, res) => {
     const { name, role, department } = req.body;
 
     if (!name || !role || !department) {
@@ -60,7 +60,7 @@ exports.addEmployee = async (req, res) => {
 };
 
 // Get all employees
-exports.getEmployees = async (req, res) => {
+export const getEmployees = async (req, res) => {
     try {
         const result = await db.execute('SELECT * FROM employees');
         res.status(200).json(result.rows);
@@ -70,7 +70,7 @@ exports.getEmployees = async (req, res) => {
 };
 
 // Mark attendance
-exports.markAttendance = async (req, res) => {
+export const markAttendance = async (req, res) => {
     const { employeeId, date, status } = req.body;
 
     if (!employeeId || !date || !status) {

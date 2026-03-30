@@ -26,7 +26,7 @@ const Employees = () => {
 
     try {
       console.log('[Employees] Fetching user records...');
-      const url = user.role === 'admin' ? '/users' : `/users?role=manager&id=${user.id}`;
+      const url = user.role === 'admin' ? '/employees' : `/employees?role=manager&id=${user.id}`;
       const { data } = await api.get(url);
       setEmployees(data);
     } catch (err) {
@@ -45,9 +45,13 @@ const Employees = () => {
     try {
       console.log(`[Employees] ${editMode ? 'Updating' : 'Creating'} user:`, currentEmp.email);
       if (editMode) {
-        await api.put(`/users/${currentEmp.id}`, currentEmp);
+        await api.put(`/employees/${currentEmp.id}`, currentEmp);
       } else {
-        await api.post('/users', currentEmp);
+        await fetch('/api/employees', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: currentEmp.name, email: currentEmp.email, role: currentEmp.role, password: currentEmp.password })
+        });
       }
       setShowModal(false);
       fetchEmployees();
@@ -79,7 +83,7 @@ const Employees = () => {
     if (window.confirm('Are you sure you want to delete this user record?')) {
       try {
         console.log(`[Employees] Deleting user ID: ${id}`);
-        await api.delete(`/users/${id}`);
+        await api.delete(`/employees/${id}`);
         fetchEmployees();
       } catch (err) {
         console.error('[Employees] Delete Error:', err);

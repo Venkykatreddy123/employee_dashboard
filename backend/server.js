@@ -9,6 +9,12 @@ import breakRoutes from './routes/breakRoutes.js';
 import leaveRoutes from './routes/leaveRoutes.js';
 import bonusRoutes from './routes/bonusRoutes.js';
 import meetingRoutes from './routes/meetingRoutes.js';
+import employeeRoutes from './routes/employeeRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import timeRoutes from './routes/timeRoutes.js';
+import pulseRoutes from './routes/pulseRoutes.js';
+import salaryRoutes from './routes/salaryRoutes.js';
+import payslipRoutes from './routes/payslipRoutes.js';
 
 dotenv.config();
 
@@ -26,8 +32,15 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/breaks', breakRoutes);
 app.use('/api/leaves', leaveRoutes);
+app.use('/api/leave', leaveRoutes); // Singular for frontend compatibility
 app.use('/api/bonuses', bonusRoutes);
 app.use('/api/meetings', meetingRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/time', timeRoutes);
+app.use('/api/pulse', pulseRoutes);
+app.use('/api/salary', salaryRoutes);
+app.use('/api/payslip', payslipRoutes);
 
 app.get('/', (req, res) => {
   res.send('Senior Employee Dashboard API is running...');
@@ -39,5 +52,5 @@ app.use('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });

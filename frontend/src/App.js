@@ -14,6 +14,8 @@ import Navbar from './components/Navbar';
 import AdminDashboard from './pages/AdminDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
+import SalaryManagement from './pages/SalaryManagement';
+import PayslipManagement from './pages/PayslipManagement';
 
 // Protected Route Component with Role Check
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -92,6 +94,18 @@ function App() {
 
         {/* Meeting Logs */}
         <Route path="/meetings" element={<ProtectedRoute><MeetingsLog /></ProtectedRoute>} />
+
+        {/* Salary and Payslips */}
+        <Route path="/salary" element={
+          <ProtectedRoute allowedRoles={['admin', 'manager']}>
+            <SalaryManagement />
+          </ProtectedRoute>
+        } />
+        <Route path="/payslips" element={
+          <ProtectedRoute allowedRoles={['admin', 'manager', 'employee']}>
+            <PayslipManagement />
+          </ProtectedRoute>
+        } />
         
         <Route path="/" element={<RoleBasedRedirect />} />
       </Routes>

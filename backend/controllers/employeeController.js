@@ -1,6 +1,6 @@
-const Employee = require('../models/employeeModel');
+import Employee from '../models/employeeModel.js';
 
-exports.getAllEmployees = async (req, res) => {
+export const getAllEmployees = async (req, res) => {
   try {
     const employees = await Employee.getAll();
     res.json(employees);
@@ -9,7 +9,7 @@ exports.getAllEmployees = async (req, res) => {
   }
 };
 
-exports.getManagers = async (req, res) => {
+export const getManagers = async (req, res) => {
   try {
     const managers = await Employee.getManagers();
     res.json(managers);
@@ -18,7 +18,7 @@ exports.getManagers = async (req, res) => {
   }
 };
 
-exports.getEmployeeById = async (req, res) => {
+export const getEmployeeById = async (req, res) => {
   const { id } = req.params;
   try {
     const employee = await Employee.getById(id);
@@ -29,7 +29,7 @@ exports.getEmployeeById = async (req, res) => {
   }
 };
 
-exports.addEmployee = async (req, res) => {
+export const addEmployee = async (req, res) => {
   try {
     const result = await Employee.create(req.body);
     res.json({ id: result.id, message: 'Employee added successfully!' });
@@ -38,7 +38,7 @@ exports.addEmployee = async (req, res) => {
   }
 };
 
-exports.updateEmployee = async (req, res) => {
+export const updateEmployee = async (req, res) => {
   const { id } = req.params;
   try {
     await Employee.update(id, req.body);
@@ -48,7 +48,7 @@ exports.updateEmployee = async (req, res) => {
   }
 };
 
-exports.deleteEmployee = async (req, res) => {
+export const deleteEmployee = async (req, res) => {
   const { id } = req.params;
   try {
     await Employee.delete(id);

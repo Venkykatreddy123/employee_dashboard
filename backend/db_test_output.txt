@@ -1,0 +1,56 @@
+﻿DATABASE_URL: libsql://employeedashboard-sravani-3-ai.aws-ap-south-1.turso.io
+Turso Database Client initialized.
+Connecting to Database...
+node : Database connection 
+or query failed: 
+LibsqlError: SERVER_ERROR: 
+Server returned HTTP status 
+400
+At line:1 char:1
++ node test-db.js 2>&1 | 
+Out-File -Encoding utf8 
+db_test_output.txt
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          
+    : NotSpecified: (Datab  
+  ase connec...HTTP statu   
+ s 400:String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+    at mapHranaError (file:/
+//C:/Users/user/employee-das
+hboard/backend/node_modules/
+@libsql/client/lib-esm/hrana
+.js:310:16)
+    at file:///C:/Users/user
+/employee-dashboard/backend/
+node_modules/@libsql/client/
+lib-esm/http.js:86:23
+    at process.processTicksA
+ndRejections (node:internal/
+process/task_queues:104:5)
+    at async verifyDB (file:
+///C:/Users/user/employee-da
+shboard/backend/test-db.js:6
+:24) {
+  code: 'SERVER_ERROR',
+  extendedCode: undefined,
+  rawCode: undefined,
+  [cause]: HttpServerError: 
+Server returned HTTP status 
+400
+      at errorFromResponse (
+file:///C:/Users/user/employ
+ee-dashboard/backend/node_mo
+dules/@libsql/hrana-client/l
+ib-esm/http/stream.js:357:16
+)
+      at process.processTick
+sAndRejections (node:interna
+l/process/task_queues:104:5)
+ {
+    status: 400
+  }
+}
