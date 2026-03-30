@@ -2,22 +2,70 @@ import { db } from '../db.js';
 
 export const getPayslips = async (req, res) => {
     try {
-        const { employeeId } = req.params;
-        const result = await db.execute({
-            sql: `
-            SELECT p.id, p.month, p.generated_at, s.base_salary, s.bonus, s.deductions, s.net_salary, u.name as employee
-            FROM payslips p
-            JOIN salaries s ON p.salary_id = s.id
-            JOIN users u ON p.employee_id = u.id
-            WHERE p.employee_id = ?
-            ORDER BY p.id DESC
-            `,
-            args: [employeeId]
-        });
+        const userRole = req.user.role;
+        const userId = req.user.id;
+
+        let result;
+
+        if (userRole === 'admin') {
+            result = await db.execute(`
+                SELECT p.id, p.month, p.generated_at, s.base_salary, s.bonus, s.deductions, s.net_salary, u.name as employee
+                FROM payslips p
+                JOIN users u ON p.employee_id = u.id
+                LEFT JOIN salaries s ON p.salary_id = s.id
+                ORDER BY p.id DESC
+            `);
+        } else {
+            result = await db.execute({
+                sql: `
+                SELECT p.id, p.month, p.generated_at, s.base_salary, s.bonus, s.deductions, s.net_salary, u.name as employee
+                FROM payslips p
+                JOIN users u ON p.employee_id = u.id
+                LEFT JOIN salaries s ON p.salary_id = s.id
+                WHERE p.employee_id = ?
+                ORDER BY p.id DESC
+                `,
+                args: [userId]
+            });
+        }
+        
         res.status(200).json(result.rows);
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to fetch payslips" });
+    }
+};
+
+export const generateAllPayslips = async (req, res) => {
+    try {
+        const employees = await db.execute("SELECT id FROM users");
+
+        for (const emp of employees.rows) {
+            const hasSalary = await db.execute({
+                sql: "SELECT id FROM salaries WHERE employee_id = ? AND month = 'March'",
+                args: [emp.id]
+            });
+
+            if (hasSalary.rows.length > 0) {
+                const sid = hasSalary.rows[0].id;
+                
+                const exists = await db.execute({
+                    sql: "SELECT id FROM payslips WHERE employee_id = ? AND salary_id = ?",
+                    args: [emp.id, sid]
+                });
+
+                if (exists.rows.length === 0) {
+                    await db.execute({
+                        sql: "INSERT INTO payslips (employee_id, salary_id, month) VALUES (?, ?, ?)",
+                        args: [emp.id, sid, 'March']
+                    });
+                }
+            }
+        }
+        res.status(200).json({ message: "Successfully executed generate-all protocol." });
+    } catch(err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to globally generate payslips." });
     }
 };
 

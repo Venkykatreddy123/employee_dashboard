@@ -10,7 +10,7 @@ const PayslipManagement = () => {
     useEffect(() => {
         const fetchPayslips = async () => {
             try {
-                const response = await fetch(`/api/payslip/${user.id}`, {
+                const response = await fetch('/api/payslip', {
                     headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
                 });
                 const data = await response.json();
@@ -21,7 +21,20 @@ const PayslipManagement = () => {
             setLoading(false);
         };
         fetchPayslips();
-    }, [user.id]);
+    }, []);
+
+    const handleGenerateAll = async () => {
+        try {
+            setLoading(true);
+            await fetch('/api/payslip/generate-all', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            window.location.reload();
+        } catch (err) {
+            console.error(err);
+        }
+    };
 
     const handleDownload = (ps) => {
         const doc = new jsPDF();
@@ -54,7 +67,14 @@ const PayslipManagement = () => {
 
     return (
         <div className="px-4 py-3">
-            <h4 className="fw-bold mb-4">Official Payroll Transcripts</h4>
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h4 className="fw-bold mb-0">Official Payroll Transcripts</h4>
+                {user.role === 'admin' && (
+                    <button className="btn btn-primary fw-bold px-4" onClick={handleGenerateAll} disabled={loading}>
+                        Generate All Staff Payslips
+                    </button>
+                )}
+            </div>
             <div className="table-custom shadow-sm border-0">
                 <table className="table table-hover mb-0">
                     <thead>
