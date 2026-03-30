@@ -9,7 +9,7 @@ const initializeDatabase = async () => {
       password TEXT NOT NULL,
       role TEXT CHECK(role IN ('Employee', 'Manager', 'Admin')) NOT NULL,
       managerId INTEGER,
-      FOREIGN KEY (managerId) REFERENCES USERS(id)
+      FOREIGN KEY (managerId) REFERENCES employees(id)
     )`,
     `CREATE TABLE IF NOT EXISTS SESSIONS (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,14 +17,14 @@ const initializeDatabase = async () => {
       startTime TEXT NOT NULL,
       endTime TEXT,
       status TEXT CHECK(status IN ('active', 'completed')),
-      FOREIGN KEY (userId) REFERENCES USERS(id)
+      FOREIGN KEY (userId) REFERENCES employees(id)
     )`,
     `CREATE TABLE IF NOT EXISTS BREAKS (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       userId INTEGER NOT NULL,
       startTime TEXT NOT NULL,
       endTime TEXT,
-      FOREIGN KEY (userId) REFERENCES USERS(id)
+      FOREIGN KEY (userId) REFERENCES employees(id)
     )`,
     `CREATE TABLE IF NOT EXISTS LEAVES (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -33,7 +33,7 @@ const initializeDatabase = async () => {
       reason TEXT,
       status TEXT CHECK(status IN ('Pending', 'Approved', 'Rejected')) DEFAULT 'Pending',
       time TEXT,
-      FOREIGN KEY (userId) REFERENCES USERS(id)
+      FOREIGN KEY (userId) REFERENCES employees(id)
     )`,
     `CREATE TABLE IF NOT EXISTS MEETINGS (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,7 +43,7 @@ const initializeDatabase = async () => {
       time TEXT NOT NULL,
       duration TEXT,
       participants INTEGER,
-      FOREIGN KEY (userId) REFERENCES USERS(id)
+      FOREIGN KEY (userId) REFERENCES employees(id)
     )`
   ];
 
@@ -53,7 +53,7 @@ const initializeDatabase = async () => {
     }
 
     // Seed Data
-    const usersCount = await executeQuery('SELECT COUNT(*) as count FROM USERS');
+    const usersCount = await executeQuery('SELECT COUNT(*) as count FROM employees');
     const count = typeof usersCount.rows[0].count === 'bigint' ? Number(usersCount.rows[0].count) : usersCount.rows[0].count;
     
     if (count === 0) {
@@ -65,21 +65,21 @@ const initializeDatabase = async () => {
       const empPw = await bcrypt.hash('employee123', 10);
 
       await executeQuery(
-        'INSERT INTO USERS (name, email, password, role) VALUES (?, ?, ?, ?)',
+        'INSERT INTO employees (name, email, password, role) VALUES (?, ?, ?, ?)',
         ['Admin User', 'admin@company.com', adminPw, 'Admin']
       );
 
       // We get the recently inserted manager to act as the employees managerId
       await executeQuery(
-        'INSERT INTO USERS (name, email, password, role) VALUES (?, ?, ?, ?)',
+        'INSERT INTO employees (name, email, password, role) VALUES (?, ?, ?, ?)',
         ['Manager User', 'manager@company.com', mgrPw, 'Manager']
       );
       
-      const mgrRes = await executeQuery('SELECT id FROM USERS WHERE role = ?', ['Manager']);
+      const mgrRes = await executeQuery('SELECT id FROM employees WHERE role = ?', ['Manager']);
       const managerId = mgrRes.rows[0].id;
 
       await executeQuery(
-        'INSERT INTO USERS (name, email, password, role, managerId) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO employees (name, email, password, role, managerId) VALUES (?, ?, ?, ?, ?)',
         ['Employee User', 'employee@company.com', empPw, 'Employee', managerId]
       );
 

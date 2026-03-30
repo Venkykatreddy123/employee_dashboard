@@ -7,7 +7,7 @@ const { client } = require('../config/db');
 exports.getAllEmployees = async (req, res) => {
     console.log('📡 API: GET /api/employees');
     try {
-        const query = await client.execute("SELECT id, emp_id, name, email, role, department, joining_date, salary FROM users ORDER BY created_at DESC");
+        const query = await client.execute("SELECT id, emp_id, name, email, role, department, joining_date, salary FROM employees ORDER BY created_at DESC");
         res.json(query.rows);
     } catch (err) {
         console.error('🔥 DB Fetch Error:', err.message);
@@ -30,7 +30,7 @@ exports.addEmployee = async (req, res) => {
 
     try {
         await client.execute({
-            sql: "INSERT INTO users (emp_id, name, email, password, role, department, joining_date, salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            sql: "INSERT INTO employees (emp_id, name, email, password, role, department, joining_date, salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             args: [emp_id, name, email, password, role || 'Employee', department || 'General', joining_date, salary || 0]
         });
         console.log(`✅ DB: Data persisted for ${emp_id}`);
@@ -51,7 +51,7 @@ exports.updateEmployee = async (req, res) => {
     console.log(`📡 API: PUT /api/employees/${id}`);
 
     try {
-        let sql = "UPDATE users SET name = ?, email = ?, role = ?, department = ?, joining_date = ?, salary = ?";
+        let sql = "UPDATE employees SET name = ?, email = ?, role = ?, department = ?, joining_date = ?, salary = ?";
         let args = [name, email, role, department, joining_date, salary];
         
         if (password) {
@@ -79,7 +79,7 @@ exports.deleteEmployee = async (req, res) => {
     console.log(`📡 API: DELETE /api/employees/${id}`);
     try {
         await client.execute({
-            sql: "DELETE FROM users WHERE emp_id = ?",
+            sql: "DELETE FROM employees WHERE emp_id = ?",
             args: [id]
         });
         console.log(`✅ DB: Record purged for ${id}`);
@@ -97,7 +97,7 @@ exports.getEmployeeById = async (req, res) => {
     const { id } = req.params; // emp_id
     try {
         const query = await client.execute({
-            sql: "SELECT emp_id, name, email, role, department, joining_date, salary FROM users WHERE emp_id = ?",
+            sql: "SELECT emp_id, name, email, role, department, joining_date, salary FROM employees WHERE emp_id = ?",
             args: [id]
         });
         if (query.rows.length === 0) return res.status(404).json({ success: false, message: 'Employee not found' });

@@ -1,102 +1,115 @@
-require('dotenv').config();
-
-// 1. Validate Environment Variables IMMEDIATELY
-if (!process.env.TURSO_DATABASE_URL) {
-  console.error("❌ ERROR: TURSO_DATABASE_URL environment variable is missing.");
-  process.exit(1);
-}
-if (!process.env.TURSO_AUTH_TOKEN) {
-  console.warn("⚠️ WARNING: TURSO_AUTH_TOKEN is missing (only okay if intentionally using a local SQLite file).");
-}
-
 const express = require('express');
 const cors = require('cors');
+const morgan = require('morgan');
+require('dotenv').config();
 
-const { initializeDatabase } = require('./models/initDb');
-const { verifyConnection } = require('./config/db');
+// 1. Environment Guard
+if (!process.env.TURSO_DATABASE_URL && !process.env.DATABASE_URL) {
+    console.error("❌ ERROR: TURSO_DATABASE_URL environment variable is missing.");
+    process.exit(1);
+}
 
+const { connectDB } = require('./config/db');
+const setupDatabase = require('./config/db-setup');
+
+// 2. Route Imports
 const authRoutes = require('./routes/authRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
-const managerRoutes = require('./routes/managerRoutes');
-const adminRoutes = require('./routes/adminRoutes');
+const projectRoutes = require('./routes/projectRoutes');
+const leaveRoutes = require('./routes/leaveRoutes');
+const salaryRoutes = require('./routes/salaryRoutes');
+const attendanceRoutes = require('./routes/attendanceRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const performanceRoutes = require('./routes/performanceRoutes');
+const breakRoutes = require('./routes/breakRoutes');
+const bonusRoutes = require('./routes/bonusRoutes');
+const meetingRoutes = require('./routes/meetingRoutes'); 
+const userRoutes = require('./routes/userRoutes');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
 
-// Middlewares
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'] }));
+// 3. Middlewares
+// Global CORS policy as requested
+app.use(cors({ origin: "*" }));
 app.use(express.json());
+// Active Traffic Monitoring
+app.use(morgan('📡 [:method] :url -> Status: :status (:response-time ms)'));
 
-// API Request Logging
+// 4. API Request Logging
 app.use((req, res, next) => {
-  console.log(`[API LOG] HTTP ${req.method} ${req.url}`);
+  console.log(`[API traffic] ${new Date().toISOString()} | ${req.method} ${req.url}`);
   next();
 });
 
-// Register Route Modules
-app.use('/auth', authRoutes);
-app.use('/api', employeeRoutes);
-app.use('/api', managerRoutes);
-app.use('/api', adminRoutes);
-
-// Root route
-app.get('/', (req, res) => {
-  res.json({ success: true, message: "Backend running" });
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ success: true, message: 'EMP Dashboard Health Check: OK', timestamp: new Date().toISOString() });
-});
-
-// Legacy health check for backwards compatibility
+// 5. Health Check as requested
 app.get('/api/health', (req, res) => {
-  res.json({ success: true, message: 'EMP Dashboard Turso API is streaming successfully.', timestamp: new Date().toISOString() });
+  res.json({ status: "ok" });
 });
 
-// Unknown routes catch-all
+// 6. Registered Routes with proper /api prefixes
+app.use('/api/auth', authRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/salary', salaryRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/performance', performanceRoutes);
+// Specialized workforce modules
+app.use('/api/breaks', breakRoutes);
+app.use('/api/bonus', bonusRoutes);
+app.use('/api/meetings', meetingRoutes);
+app.use('/api/users', userRoutes);
+
+app.get('/', (req, res) => res.json({ 
+    success: true, 
+    message: 'Admin-Employee Dashboard Backend API Operational',
+    port: 5000
+}));
+
+// 7. Unknown Routes catch-all
 app.use((req, res) => {
-  console.warn(`[API WARNING] 404 Route Not Found: ${req.method} ${req.path}`);
-  res.status(404).json({ success: false, message: `Route ${req.method} ${req.path} not found on the backend.` });
+    res.status(404).json({ success: false, message: `Route ${req.method} ${req.url} not found.` });
 });
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-  console.error("🛑 [GLOBAL ERROR]", err.stack);
-  res.status(500).json({ success: false, message: 'Internal Server Error', error: err.message });
-});
+// 8. Lifecycle Bootup
+const startServer = async () => {
+    try {
+        console.log('🚀 Initializing Enterprise Backend Infrastructure...');
+        console.log('Connecting to Turso DB...');
+        
+        // Test Database Connection
+        const isDBReady = await connectDB(3);
+        if (!isDBReady) {
+            console.error('❌ Cloud Connection Terminal Error: Sync aborted.');
+            process.exit(1);
+        }
+        
+        // Sync Schema
+        await setupDatabase();
+        console.log('✅ Turso Database Synced.');
 
-// Boot Database & Validate State
-const startServer = (port) => {
-  const server = app.listen(port, () => {
-    console.log(`✅ Server running on port ${port}`);
-    console.log(`📋 Health check available at: http://localhost:${port}/api/health\n`);
-  });
+        // Bind Port - Forced to 5000 as requested
+        const PORT = 5000; 
+        app.listen(PORT, () => {
+            console.log(`✅ Server running on port ${PORT}`);
+            console.log(`📡 URL: http://localhost:${PORT}`);
+            console.log(`📋 Health Check: http://localhost:${PORT}/api/health\n`);
+        }).on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.error(`🔥 FATAL: Port ${PORT} busy. Please stop existing node processes.`);
+                process.exit(1);
+            } else {
+                console.error('🔥 Boot error:', err.message);
+                process.exit(1);
+            }
+        });
 
-  server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.warn(`⚠️ Port ${port} busy, switching to ${port + 1}...`);
-      startServer(port + 1);
-    } else {
-      console.error('❌ Failed to start server:', err.message);
-      process.exit(1);
+    } catch (criticalErr) {
+        console.error('🔥 SYSTEM CRITICAL CRASH:');
+        console.error(criticalErr.stack);
+        process.exit(1);
     }
-  });
 };
 
-const bootServer = async () => {
-  console.log("🚀 Starting server...");
-  try {
-    // 2. Init and test Turso database
-    await verifyConnection();
-    await initializeDatabase();
-    
-    // 3. Server lifecycle start
-    startServer(PORT);
-  } catch (err) {
-    console.error("❌ Fatal Boot Error. Server aborted:", err.message);
-    process.exit(1);
-  }
-};
-
-bootServer();
+startServer();

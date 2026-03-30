@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { 
   Plus, Wallet, History, Download, Trash2, ChevronRight, TrendingUp, CreditCard, Layers, Archive, ArrowUpRight, RefreshCw, FileText
 } from 'lucide-react';
@@ -29,11 +29,11 @@ const Salary = () => {
       setLoading(true);
       console.log(`📡 Synchronization Handshake: ${user.emp_id} Financial Registry`);
       
-      const res = await axios.get(`/api/salary/${user.emp_id}`);
+      const res = await api.get(`/salary/${user.emp_id}`);
       setSalaries(res.data.success ? res.data.data : []);
       
       if (isAdminOrHR) {
-        const empRes = await axios.get('/api/employees');
+        const empRes = await api.get('/employees');
         setEmployees(empRes.data);
       }
       setLoading(false);
@@ -51,7 +51,7 @@ const Salary = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/salary', formData);
+      await api.post('/salary', formData);
       toast.success('Financial Record Persisted');
       setIsModalOpen(false);
       fetchData();
@@ -69,7 +69,7 @@ const Salary = () => {
     
     try {
        // Fetch PDF as blob with Authorization headers
-       const response = await axios.get(payslipUrl, { responseType: 'blob' });
+       const response = await api.get(payslipUrl, { responseType: 'blob' });
        
        // Create secure blob stream
        const blobUrl = window.URL.createObjectURL(new Blob([response.data]));

@@ -1,12 +1,14 @@
-import express from 'express';
-import * as bonusController from '../controllers/bonusController.js';
-import authMiddleware from '../middleware/authMiddleware.js';
-
+const express = require('express');
 const router = express.Router();
+const bonusController = require('../controllers/bonusController');
+const { authMiddleware, authorize } = require('../middleware/authMiddleware');
 
 router.use(authMiddleware);
 
+// Historical records
 router.get('/', bonusController.getBonuses);
-router.post('/', bonusController.assignBonus);
 
-export default router;
+// Authority-driven assignment
+router.post('/', authorize(['Admin', 'HR']), bonusController.assignBonus);
+
+module.exports = router;

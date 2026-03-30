@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { 
   User, 
   Mail, 
@@ -40,7 +40,7 @@ const Profile = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.put('/api/auth/me', formData);
+      await api.put('/auth/me', formData);
       toast.success('Identity updated successfully');
       fetchMe();
     } catch (err) {

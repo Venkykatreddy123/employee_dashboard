@@ -7,9 +7,9 @@ exports.getDashboardStats = async (req, res) => {
     console.log('📡 API: GET /api/dashboard/admin - Global Metrics');
     try {
         const [empCount, projCount, salarySum] = await Promise.all([
-            client.execute("SELECT COUNT(*) as count FROM users"),
+            client.execute("SELECT COUNT(*) as count FROM employees"),
             client.execute("SELECT COUNT(*) as count FROM projects"),
-            client.execute("SELECT SUM(salary) as total FROM users")
+            client.execute("SELECT SUM(salary) as total FROM employees")
         ]);
 
         res.json({

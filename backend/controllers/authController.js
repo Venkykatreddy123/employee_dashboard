@@ -3,7 +3,7 @@ const { client } = require('../config/db');
 
 /**
  * login - Authenticates user and returns JWT
- * Unified schema: role and department are now in the users table.
+ * Identity Registry: employees table
  */
 exports.login = async (req, res) => {
     const { email, password } = req.body;
@@ -12,25 +12,25 @@ exports.login = async (req, res) => {
     try {
         console.log(`🔍 [AUTH] Probing Registry for identity: ${email}`);
         const query = await client.execute({
-            sql: "SELECT id, emp_id, name, email, password, role, department FROM users WHERE email = ? LIMIT 1",
+            sql: "SELECT id, emp_id, name, email, password, role FROM employees WHERE email = ? LIMIT 1",
             args: [email]
         });
 
         if (query.rows.length === 0) {
             console.warn(`❌ [AUTH] Handshake Discontinuity: Identity not found for ${email}`);
-            return res.status(401).json({ success: false, message: 'Invalid Credentials - Account logic mismatch' });
+            return res.status(400).json({ message: 'User not found' });
         }
 
         const user = query.rows[0];
 
-        // Plain text comparison as per initial simplified requirements
+        // Plain text comparison
         if (password !== user.password) {
             console.warn(`❌ [AUTH] Integrity Failure: Invalid credential hash for ${email}`);
-            return res.status(401).json({ success: false, message: 'Invalid Credentials - Verification failed' });
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         const payload = {
-            id: user.emp_id, // Use emp_id as the primary identifier for app logic
+            id: user.emp_id,
             role: user.role,
             name: user.name,
             email: user.email
@@ -47,13 +47,12 @@ exports.login = async (req, res) => {
                 emp_id: user.emp_id,
                 name: user.name,
                 email: user.email,
-                role: user.role,
-                department: user.department
+                role: user.role
             }
         });
     } catch (err) {
         console.error('🔥 Login Error:', err.message);
-        res.status(500).json({ success: false, message: 'Server error during authentication' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
@@ -63,34 +62,34 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
     try {
         const query = await client.execute({
-            sql: "SELECT emp_id, name, email, role, department, joining_date, salary FROM users WHERE emp_id = ? LIMIT 1",
-            args: [req.user.id] // req.user.id contains emp_id from JWT payload
+            sql: "SELECT emp_id, name, email, role, department, joining_date, salary FROM employees WHERE emp_id = ? LIMIT 1",
+            args: [req.user.id]
         });
 
         if (query.rows.length === 0) {
-            return res.status(404).json({ success: false, message: 'Profile not found' });
+            return res.status(404).json({ message: 'Profile not found' });
         }
 
         res.json(query.rows[0]);
     } catch (err) {
         console.error('🔥 Get Profile Error:', err.message);
-        res.status(500).json({ success: false, message: 'Server error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 
 /**
- * register - Admin only or public registration? (simplified)
+ * register - Create new user
  */
 exports.register = async (req, res) => {
     const { emp_id, name, email, password, role, department } = req.body;
     try {
         await client.execute({
-            sql: "INSERT INTO users (emp_id, name, email, password, role, department) VALUES (?, ?, ?, ?, ?, ?)",
+            sql: "INSERT INTO employees (emp_id, name, email, password, role, department) VALUES (?, ?, ?, ?, ?, ?)",
             args: [emp_id, name, email, password, role || 'Employee', department || 'General']
         });
-        res.status(201).json({ success: true, message: 'User registered successfully' });
+        res.status(201).json({ message: 'User registered successfully' });
     } catch (err) {
-        res.status(400).json({ success: false, message: err.message });
+        res.status(400).json({ message: err.message });
     }
 };
 
@@ -99,9 +98,9 @@ exports.register = async (req, res) => {
  */
 exports.getUsers = async (req, res) => {
     try {
-        const query = await client.execute("SELECT emp_id, name, email, role, department FROM users");
+        const query = await client.execute("SELECT emp_id, name, email, role, department FROM employees");
         res.json(query.rows);
     } catch (err) {
-        res.status(500).json({ success: false, message: 'Server error' });
+        res.status(500).json({ message: 'Server error' });
     }
 };

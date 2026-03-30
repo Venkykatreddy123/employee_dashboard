@@ -53,7 +53,7 @@ exports.generatePayslip = async (req, res) => {
     
     try {
         const userQuery = await client.execute({
-            sql: "SELECT name, emp_id, email, role, department FROM users WHERE emp_id = ?",
+            sql: "SELECT name, emp_id, email, role, department FROM employees WHERE emp_id = ?",
             args: [id]
         });
         

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { 
   Users, Briefcase, Calendar, BarChart3, ArrowUpRight, TrendingUp, Clock, CheckCircle2, RefreshCw, DollarSign, AlertCircle, Zap
 } from 'lucide-react';
@@ -45,14 +45,14 @@ const Dashboard = () => {
       console.log(`📡 Synchronization Handshake: ${isAdmin ? 'Admin Global Registry' : 'Individual Load Registry'}`);
       
       const endpoint = isAdmin 
-        ? '/api/dashboard/admin' 
-        : `/api/dashboard/employee/${user.emp_id}`;
+        ? '/dashboard/admin' 
+        : `/dashboard/employee/${user.emp_id}`;
         
-      const response = await axios.get(endpoint);
-      setStats({
-          ...stats,
+      const response = await api.get(endpoint);
+      setStats(prev => ({
+          ...prev,
           ...response.data
-      });
+      }));
       setIsDegraded(response.data.syncStatus !== 'Optimal');
       setLoading(false);
     } catch (err) {

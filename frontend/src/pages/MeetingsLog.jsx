@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../api/api';
+import api from '../services/api';
 import { Video, Plus, Calendar, Clock, Bookmark } from 'lucide-react';
 
 const MeetingsLog = () => {
@@ -14,7 +14,7 @@ const MeetingsLog = () => {
 
     try {
       console.log('[MeetingsLog] Fetching engagement records...');
-      const { data } = await api.get(`/meetings?role=${user.role}&id=${user.id}`);
+      const { data } = await api.get(`/meetings?role=${user.role}&id=${user.emp_id}`);
       setMeetings(data);
     } catch (err) {
       console.error('[MeetingsLog] Fetch Error:', err);
@@ -29,7 +29,7 @@ const MeetingsLog = () => {
     e.preventDefault();
     try {
       console.log(`[MeetingsLog] Logging new session: ${formData.title}`);
-      await api.post('/meetings', { ...formData, user_id: user.id });
+      await api.post('/meetings', { ...formData, user_id: user.emp_id });
       setShowModal(false);
       setFormData({ title: '', meeting_date: '', duration: '', notes: '' });
       fetchMeetings();

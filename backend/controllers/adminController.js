@@ -11,7 +11,7 @@ const createUser = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const result = await executeQuery(
-      'INSERT INTO USERS (name, email, password, role, managerId) VALUES (?, ?, ?, ?, ?) RETURNING id, name, email, role, managerId',
+      'INSERT INTO employees (name, email, password, role, managerId) VALUES (?, ?, ?, ?, ?) RETURNING id, name, email, role, managerId',
       [name, email, hashedPassword, role, managerId || null]
     );
 
@@ -32,7 +32,7 @@ const updateUser = async (req, res) => {
     
     // Simplistic update for requirements (could expand for dynamic updates)
     const result = await executeQuery(
-      'UPDATE USERS SET name = ?, email = ?, role = ?, managerId = ? WHERE id = ? RETURNING id, name, email, role, managerId',
+      'UPDATE employees SET name = ?, email = ?, role = ?, managerId = ? WHERE id = ? RETURNING id, name, email, role, managerId',
       [name, email, role, managerId || null, userId]
     );
 
@@ -52,7 +52,7 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const userId = req.params.id;
-    const result = await executeQuery('DELETE FROM USERS WHERE id = ? RETURNING id', [userId]);
+    const result = await executeQuery('DELETE FROM employees WHERE id = ? RETURNING id', [userId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'User not found' });
@@ -67,7 +67,7 @@ const deleteUser = async (req, res) => {
 const getAllData = async (req, res) => {
   try {
     const [users, sessions, breaks, leaves, meetings] = await Promise.all([
-      executeQuery('SELECT id, name, email, role, managerId FROM USERS'),
+      executeQuery('SELECT id, name, email, role, managerId FROM employees'),
       executeQuery('SELECT * FROM SESSIONS'),
       executeQuery('SELECT * FROM BREAKS'),
       executeQuery('SELECT * FROM LEAVES'),

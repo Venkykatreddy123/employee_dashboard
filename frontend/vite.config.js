@@ -9,9 +9,10 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001', // User-specified Infrastructure Port
+        target: 'http://localhost:5000', // Consistent with Modernized Backend
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path // Maintaining the /api prefix for backend mapping
       }
     }
   }

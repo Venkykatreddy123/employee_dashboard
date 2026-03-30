@@ -1,9 +1,9 @@
-import { createClient } from "@libsql/client";
-import dotenv from "dotenv";
+const { client } = require('./config/db');
 
-dotenv.config();
-
-export const db = createClient({
-  url: process.env.TURSO_DATABASE_URL,
-  authToken: process.env.TURSO_AUTH_TOKEN,
-});
+/**
+ * LEGACY EXPORT: Proxy for config/db.js
+ * Provided for compatibility with legacy modules still using require('./db') 
+ * or require('../db') in the root directory.
+ */
+module.exports = client;
+module.exports.db = client;

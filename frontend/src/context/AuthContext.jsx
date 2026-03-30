@@ -61,8 +61,17 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
-      const message = error.response?.data?.message || 'Login failed - Neural connection broken';
-      console.error('[AuthContext] Login Handshake Integrity Failure:', message);
+      // Improved error output
+      const message = error.response?.data?.message || 
+                     error.message || 
+                     'Unable to connect to the backend server. Please verify the API status.';
+      
+      console.error('[AuthContext] Login Handshake Failure:', {
+        serverMessage: error.response?.data?.message,
+        axiosError: error.message,
+        fullError: error
+      });
+      
       return { 
         success: false, 
         message: message 

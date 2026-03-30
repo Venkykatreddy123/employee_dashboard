@@ -1,26 +1,37 @@
-// Frontend ↔ Turso Backend Integration
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-const API_BASE = `${BASE}/api`;
-const AUTH_BASE = `${BASE}/api/auth`;
+// Frontend ↔ Turso Backend Integration (Fetch Proxy Client)
+// Using relative URLs to leverage the Vite proxy (5173 -> 5000)
+const BASE = ''; 
+const API_BASE = '/api';
+const AUTH_BASE = '/api/auth';
+
+console.log(`📡 [Fetch Client] Base Proxy URL: ${API_BASE}`);
 
 const tryFetch = async (url, options = {}) => {
   try {
-    const token = localStorage.getItem('emp_token');
+    const token = localStorage.getItem('token');
     const headers = {
       'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {})
     };
 
-    const res = await fetch(url, {
+    // Ensure URL is relative to correctly hit the proxy
+    const finalUrl = url.startsWith('http') ? url : url;
+
+    const res = await fetch(finalUrl, {
       ...options,
       headers: { ...headers, ...options.headers },
     });
     
+    if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP Error: ${res.status}`);
+    }
+
     // Auto-parse JSON response
     const json = await res.json();
     return json;
   } catch (err) {
-    console.error('API Error:', err);
+    console.error('❌ [Fetch API Error]:', err.message);
     throw err;
   }
 };

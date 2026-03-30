@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { 
   Plus, Search, Edit2, Trash2, UserPlus, X, RefreshCw, Loader2, DollarSign, Calendar, Lock, AlertTriangle
 } from 'lucide-react';
@@ -33,7 +33,7 @@ const Employees = () => {
       setSyncError(null);
       console.log('📡 Syncing Personnel Registry [Attempt:', retryCount + 1, ']');
       
-      const response = await axios.get('/api/employees');
+      const response = await api.get('/employees');
       setEmployees(Array.isArray(response.data) ? response.data : []);
       setLoading(false);
       setRetryCount(0); // Reset on success
@@ -88,10 +88,10 @@ const Employees = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        await axios.put(`/api/employees/${editingId}`, formData);
+        await api.put(`/employees/${editingId}`, formData);
         toast.success('Personnel Record Synchronized');
       } else {
-        await axios.post('/api/employees', formData);
+        await api.post('/employees', formData);
         toast.success('New Personnel Persisted on Turso');
       }
       setIsModalOpen(false);
@@ -104,7 +104,7 @@ const Employees = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure? This will remove the record globally.')) {
       try {
-        await axios.delete(`/api/employees/${id}`);
+        await api.delete(`/employees/${id}`);
         toast.success('Record Successfully Decommissioned');
         fetchEmployees();
       } catch (err) {

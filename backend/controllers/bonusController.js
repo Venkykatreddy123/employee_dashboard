@@ -1,22 +1,28 @@
-import Bonus from '../models/bonusModel.js';
+const Bonus = require('../models/bonusModel');
 
-export const assignBonus = async (req, res) => {
+const assignBonus = async (req, res) => {
     try {
+        console.log(`[Bonus Controller] Financial Registry: Assigning incentive to ${req.body.user_id}`);
         await Bonus.assign(req.body);
-        res.status(201).json({ message: 'Bonus assigned successfully' });
+        res.status(201).json({ success: true, message: 'Incentive provisioned successfully' });
     } catch (error) {
-        res.status(500).json({ message: 'Error assigning bonus', error: error.message });
+        console.error('[Bonus Controller] Provisioning Error:', error.message);
+        res.status(500).json({ success: false, message: 'Registry Failure', error: error.message });
     }
 };
 
-export const getBonuses = async (req, res) => {
-    const { user_id, id, role } = req.query;
+const getBonuses = async (req, res) => {
+    const { user_id, id } = req.query;
     const targetId = id || user_id;
     
     try {
+        console.log(`[Bonus Controller] Extracting compensation records: Target=${targetId || 'GLOBAL'}`);
         const result = targetId ? await Bonus.getByUser(targetId) : await Bonus.getAll();
         res.status(200).json(result);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching bonuses', error: error.message });
+        console.error('[Bonus Controller] Retrieval Failure:', error.message);
+        res.status(500).json({ success: false, message: 'Sync Failure', error: error.message });
     }
 };
+
+module.exports = { assignBonus, getBonuses };

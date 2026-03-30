@@ -1,9 +1,7 @@
-import express from 'express';
-import * as userController from '../controllers/userController.js';
-
-import authMiddleware from '../middleware/authMiddleware.js';
-
+const express = require('express');
 const router = express.Router();
+const userController = require('../controllers/userController');
+const { authMiddleware } = require('../middleware/authMiddleware');
 
 router.use(authMiddleware);
 
@@ -14,4 +12,4 @@ router.post('/', userController.addUser);
 router.put('/:id', userController.updateUser);
 router.delete('/:id', userController.deleteUser);
 
-export default router;
+module.exports = router;

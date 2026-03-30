@@ -6,7 +6,7 @@ const { client } = require('./db');
  */
 const setupDatabase = async () => {
     try {
-        console.log('🏗️  Enforcing Master Data Schema [Final Sync]...');
+        console.log('🏗️  Enforcing Master Data Schema [Identity Registry]...');
 
         // 0. Migration Safeguard: Inspect Attendance Table
         const attendInfo = await client.execute("PRAGMA table_info(attendance)");
@@ -15,28 +15,11 @@ const setupDatabase = async () => {
         if (attendInfo.rows.length > 0 && !hasEmployeeId) {
             console.log('🔄 Outdated Attendance Schema detected. Migrating to Employee Registry standard...');
             await client.execute("DROP TABLE attendance");
-        } else if (hasEmployeeId) {
-            console.log('🔍 Standardizing ID formats (EMP001)...');
-            // Migration query attempt for numeric IDs
-            try {
-                const results = await client.execute("SELECT employee_id FROM attendance LIMIT 5");
-                const anyNumeric = results.rows.some(r => /^\d+$/.test(r.employee_id));
-                if (anyNumeric) {
-                    console.log('🔄 Converting numeric IDs to Employee Registry strings...');
-                    await client.execute(`
-                        UPDATE attendance 
-                        SET employee_id = (SELECT emp_id FROM users WHERE CAST(users.id AS TEXT) = attendance.employee_id)
-                        WHERE employee_id NOT LIKE 'EMP%'
-                    `);
-                }
-            } catch (e) {
-                console.log('✨ Registry ID alignment already optimal.');
-            }
         }
 
-        // 1. Core Personnel Registry
+        // 1. Core Identity Registry (Employees)
         await client.execute(`
-            CREATE TABLE IF NOT EXISTS users (
+            CREATE TABLE IF NOT EXISTS employees (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 emp_id TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
@@ -48,12 +31,6 @@ const setupDatabase = async () => {
                 salary REAL DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
-        `);
-
-        // 1.5 Legacy Support View (Employee Mapping)
-        await client.execute(`
-            CREATE VIEW IF NOT EXISTS employees AS 
-            SELECT emp_id AS id, name, email, role FROM users
         `);
 
         // 2. Strategic Infrastructure (Projects)
@@ -79,7 +56,7 @@ const setupDatabase = async () => {
                 employee_id TEXT NOT NULL,
                 assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
-                FOREIGN KEY (employee_id) REFERENCES users(emp_id) ON DELETE CASCADE
+                FOREIGN KEY (employee_id) REFERENCES employees(emp_id) ON DELETE CASCADE
             )
         `);
 
@@ -91,7 +68,7 @@ const setupDatabase = async () => {
                 score INTEGER NOT NULL,
                 review_date TEXT NOT NULL,
                 comments TEXT,
-                FOREIGN KEY (emp_id) REFERENCES users(emp_id) ON DELETE CASCADE
+                FOREIGN KEY (emp_id) REFERENCES employees(emp_id) ON DELETE CASCADE
             )
         `);
 
@@ -107,7 +84,7 @@ const setupDatabase = async () => {
                 year TEXT NOT NULL,
                 status TEXT DEFAULT 'Paid',
                 generated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (emp_id) REFERENCES users(emp_id) ON DELETE CASCADE
+                FOREIGN KEY (emp_id) REFERENCES employees(emp_id) ON DELETE CASCADE
             )
         `);
 
@@ -121,7 +98,7 @@ const setupDatabase = async () => {
                 check_out_time TEXT,
                 total_hours REAL DEFAULT 0,
                 status TEXT DEFAULT 'Absent',
-                FOREIGN KEY (employee_id) REFERENCES users(emp_id) ON DELETE CASCADE
+                FOREIGN KEY (employee_id) REFERENCES employees(emp_id) ON DELETE CASCADE
             )
         `);
 
@@ -129,11 +106,11 @@ const setupDatabase = async () => {
         await client.execute(`
             CREATE TABLE IF NOT EXISTS breaks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                attendance_id INTEGER NOT NULL,
-                start_time TEXT,
-                end_time TEXT,
+                user_id TEXT NOT NULL,
+                break_start TEXT,
+                break_end TEXT,
                 duration_minutes INTEGER DEFAULT 0,
-                FOREIGN KEY (attendance_id) REFERENCES attendance(id) ON DELETE CASCADE
+                FOREIGN KEY (user_id) REFERENCES employees(emp_id) ON DELETE CASCADE
             )
         `);
 
@@ -147,13 +124,39 @@ const setupDatabase = async () => {
                 end_date TEXT NOT NULL,
                 reason TEXT,
                 status TEXT DEFAULT 'Pending',
-                FOREIGN KEY (emp_id) REFERENCES users(emp_id) ON DELETE CASCADE
+                FOREIGN KEY (emp_id) REFERENCES employees(emp_id) ON DELETE CASCADE
             )
         `);
 
-        // 9. Core Seeding Logic
+        // 9. Meeting Logs Infrastructure (New as requested)
+        await client.execute(`
+            CREATE TABLE IF NOT EXISTS meetings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                title TEXT NOT NULL,
+                meeting_date TEXT NOT NULL,
+                duration INTEGER DEFAULT 0,
+                notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES employees(emp_id) ON DELETE CASCADE
+            )
+        `);
+
+        // 10. Financial Incentives Registry (Bonuses)
+        await client.execute(`
+            CREATE TABLE IF NOT EXISTS bonuses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                amount REAL DEFAULT 0,
+                reason TEXT,
+                assigned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES employees(emp_id) ON DELETE CASCADE
+            )
+        `);
+
+        // 11. Core Seeding Logic
         console.log('🌱 Checking Master Registry for core personnel...');
-        const userCheck = await client.execute("SELECT COUNT(*) as count FROM users");
+        const userCheck = await client.execute("SELECT COUNT(*) as count FROM employees");
         if (userCheck.rows[0].count === 0) {
             console.log('🌱 Registry empty. Initializing strategic personnel data...');
             const personnel = [
@@ -164,28 +167,12 @@ const setupDatabase = async () => {
             ];
             for (const u of personnel) {
                 await client.execute({
-                    sql: "INSERT INTO users (emp_id, name, email, password, role, department, joining_date, salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    sql: "INSERT INTO employees (emp_id, name, email, password, role, department, joining_date, salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     args: u
                 });
             }
 
-            // Seed initial project and assignment
-            await client.execute({
-                sql: "INSERT INTO projects (project_id, title, budget, start_date, end_date, status, tech_stack) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                args: ["PRJ001", "Strategic Infrastructure Sync", 150000, "2024-03-25", "2024-12-31", "Active", "Node.js, Turso, React"]
-            });
-            await client.execute({
-                sql: "INSERT INTO project_assignments (project_id, employee_id) VALUES (?, ?), (?, ?)",
-                args: ["PRJ001", "EMP001", "PRJ001", "EMP004"]
-            });
-            
-            // Seed sample attendance for Alice
-            await client.execute({
-                sql: "INSERT INTO attendance (employee_id, date, check_in_time, check_out_time, total_hours, status) VALUES (?, ?, ?, ?, ?, ?)",
-                args: ["EMP004", new Date().toISOString().split('T')[0], "09:00", "18:00", 9.0, "Checked Out"]
-            });
-
-            console.log('✅ Master Registry Initialized.');
+            console.log('✅ Identity Registry Initialized.');
         } else {
             console.log('✅ Personnel Registry active.');
         }

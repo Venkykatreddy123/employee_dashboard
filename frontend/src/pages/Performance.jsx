@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { 
   Award, Target, TrendingUp, Zap, Star, ChevronRight, Plus, ArrowUpRight, ShieldCheck, CheckCircle2, AlertCircle, RefreshCw
 } from 'lucide-react';
@@ -25,11 +25,11 @@ const Performance = () => {
       setLoading(true);
       console.log(`📡 Synchronization Handshake: ${user.emp_id} Performance History`);
       
-      const perfRes = await axios.get(`/api/performance/${user.emp_id}`);
+      const perfRes = await api.get(`/performance/${user.emp_id}`);
       setPerformance(perfRes.data.success ? perfRes.data.data : []);
       
       if (isAdminOrManager) {
-        const empRes = await axios.get('/api/employees');
+        const empRes = await api.get('/employees');
         setEmployees(empRes.data);
       }
       setLoading(false);
@@ -47,7 +47,7 @@ const Performance = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('/api/performance', formData);
+      await api.post('/performance', formData);
       toast.success('Performance Review Persisted');
       setIsModalOpen(false);
       fetchData();

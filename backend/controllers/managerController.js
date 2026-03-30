@@ -5,12 +5,12 @@ const getTeam = async (req, res) => {
   try {
     const managerId = req.user.id;
     // Admins can see all users if needed, but managers see users where managerId matches
-    let query = 'SELECT id, name, email, role, managerId FROM USERS WHERE managerId = ?';
+    let query = 'SELECT id, name, email, role, managerId FROM employees WHERE managerId = ?';
     let args = [managerId];
     
     // If Admin wants to see team route (fallback to all users for simplicity or keep strict to manager setup)
     if (req.user.role === 'Admin') {
-      query = 'SELECT id, name, email, role, managerId FROM USERS';
+      query = 'SELECT id, name, email, role, managerId FROM employees';
       args = [];
     }
     
@@ -27,8 +27,8 @@ const getTeamData = async (req, res) => {
     const managerId = req.user.id;
     
     // 1. Get Team Users
-    let usersQuery = 'SELECT id, name, email, role, managerId FROM USERS WHERE managerId = ?';
-    if (req.user.role === 'Admin') usersQuery = 'SELECT id FROM USERS';
+    let usersQuery = 'SELECT id, name, email, role, managerId FROM employees WHERE managerId = ?';
+    if (req.user.role === 'Admin') usersQuery = 'SELECT id FROM employees';
     const teamUsers = await executeQuery(usersQuery, req.user.role === 'Admin' ? [] : [managerId]);
     const userIds = teamUsers.rows.map(u => u.id);
 
@@ -86,7 +86,7 @@ const getUserProfile = async (req, res) => {
     const userId = req.params.id;
     
     const [user, sessions, leaves, meetings, breaks] = await Promise.all([
-      executeQuery('SELECT id, name, email, role, managerId FROM USERS WHERE id = ?', [userId]),
+      executeQuery('SELECT id, name, email, role, managerId FROM employees WHERE id = ?', [userId]),
       executeQuery('SELECT * FROM SESSIONS WHERE userId = ?', [userId]),
       executeQuery('SELECT * FROM LEAVES WHERE userId = ?', [userId]),
       executeQuery('SELECT * FROM MEETINGS WHERE userId = ?', [userId]),
