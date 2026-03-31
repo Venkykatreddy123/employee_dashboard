@@ -1,18 +1,24 @@
 const express = require('express');
 const router = express.Router();
 const { verifyToken, authorizeRoles } = require('../middleware/authMiddleware');
-const { createUser, updateUser, deleteUser, getAllData } = require('../controllers/adminController');
+const { createUser, updateUser, deleteUser, getAllData, generatePayslips, getAllPayslips } = require('../controllers/adminController');
 
-// All admin routes require authentication & strict 'Admin' role
+// Admin routes - ensure authenticated and Admin role
 router.use(verifyToken);
-router.use(authorizeRoles('Admin'));
+const isAdmin = authorizeRoles('Admin');
+
 
 // User CRUD Management
-router.post('/users', createUser);
-router.put('/users/:id', updateUser);
-router.delete('/users/:id', deleteUser);
+router.post('/users', isAdmin, createUser);
+router.put('/users/:id', isAdmin, updateUser);
+router.delete('/users/:id', isAdmin, deleteUser);
 
 // Global State
-router.get('/all-data', getAllData);
+router.get('/all-data', isAdmin, getAllData);
+
+// Payslips (Admin)
+router.post('/admin/generate-payslips', isAdmin, generatePayslips);
+router.get('/admin/payslips', isAdmin, getAllPayslips);
+
 
 module.exports = router;

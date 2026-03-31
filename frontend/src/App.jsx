@@ -20,6 +20,10 @@ import SessionTracking from '@/features/employee/pages/SessionTracking';
 import BreakTracking from '@/features/employee/pages/BreakTracking';
 import MeetingLogging from '@/features/employee/pages/MeetingLogging';
 import PersonalReports from '@/features/employee/pages/PersonalReports';
+import SalaryManagement from '@/pages/admin/SalaryManagement';
+import PayslipManagement from '@/pages/admin/PayslipManagement';
+import Payslip from '@/pages/employee/Payslip';
+import TeamPayslips from '@/pages/manager/TeamPayslips';
 
 const AppLayout = () => {
   return (
@@ -51,6 +55,11 @@ const App = () => {
                   <Route path="unauthorized" element={<Unauthorized />} />
                   <Route path="employee/:id" element={<EmployeeDetails />} />
 
+                  {/* Employee + Manager routes */}
+                  <Route element={<ProtectedRoute allowedRoles={['Employee', 'Manager']} />}>
+                    <Route path="payslips" element={<Payslip />} />
+                  </Route>
+
                   {/* Employee only routes */}
                   <Route element={<ProtectedRoute allowedRoles={['Employee']} />}>
                     <Route path="session" element={<SessionTracking />} />
@@ -64,6 +73,7 @@ const App = () => {
                   <Route element={<ProtectedRoute allowedRoles={['Manager']} />}>
                     <Route path="team" element={<TeamDirectory />} />
                     <Route path="leave/approve" element={<LeaveApproval />} />
+                    <Route path="manager/payslips" element={<TeamPayslips />} />
                     <Route path="reports/team" element={<ProductivityReports />} />
                   </Route>
 
@@ -71,6 +81,8 @@ const App = () => {
                   <Route element={<ProtectedRoute allowedRoles={['Admin']} />}>
                     <Route path="admin/users" element={<UserManagement />} />
                     <Route path="admin/config" element={<SystemConfig />} />
+                    <Route path="admin/salary" element={<SalaryManagement />} />
+                    <Route path="admin/payslips" element={<PayslipManagement />} />
                   </Route>
                 </Route>
               </Route>

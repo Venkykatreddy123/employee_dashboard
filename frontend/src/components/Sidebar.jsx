@@ -11,7 +11,9 @@ import {
   ShieldCheck, 
   Settings, 
   BarChart3,
-  UserCheck
+  UserCheck,
+  Banknote,
+  Wallet
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -25,18 +27,22 @@ const Sidebar = () => {
       { path: '/breaks', label: 'Break Tracking', icon: Coffee },
       { path: '/meetings', label: 'Meetings', icon: Calendar },
       { path: '/leave/apply', label: 'Apply Leave', icon: FileText },
+      { path: '/payslips', label: 'My Payslips', icon: Banknote },
       { path: '/reports/personal', label: 'My Reports', icon: BarChart3 }
     ],
     Manager: [
       { path: '/dashboard', label: 'Team Overview', icon: LayoutDashboard },
       { path: '/team', label: 'Team Directory', icon: Users },
       { path: '/leave/approve', label: 'Leave Approval', icon: UserCheck },
+      { path: '/manager/payslips', label: 'Team Payslips', icon: Banknote },
       { path: '/reports/team', label: 'Team Performance', icon: BarChart3 }
     ],
     Admin: [
       { path: '/dashboard', label: 'System Dashboard', icon: ShieldCheck },
       { path: '/admin/users', label: 'User Management', icon: Users },
       { path: '/admin/config', label: 'System Config', icon: Settings },
+      { path: '/admin/salary', label: 'Salary Management', icon: Wallet },
+      { path: '/admin/payslips', label: 'Payslip Records', icon: Banknote },
       { path: '/reports/team', label: 'System Reports', icon: BarChart3 }
     ]
   };

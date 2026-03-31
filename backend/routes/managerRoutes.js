@@ -2,18 +2,26 @@ const express = require('express');
 const router = express.Router();
 const { verifyToken, authorizeRoles } = require('../middleware/authMiddleware');
 const { getTeam, getTeamData, approveLeave, rejectLeave, getUserProfile } = require('../controllers/managerController');
+const { getTeamPayslips } = require('../controllers/payslipController');
 
-// All manager routes require authentication & Manager+ role
+// All manager routes require authentication
 router.use(verifyToken);
-router.use(authorizeRoles('Manager', 'Admin')); // Admins inherently have manager rights
+
+// Roles middleware helper
+const isManager = authorizeRoles('Manager', 'Admin');
+
 
 // Team Details
-router.get('/team', getTeam);
-router.get('/team-data', getTeamData);
-router.get('/user-profile/:id', getUserProfile);
+router.get('/team', isManager, getTeam);
+router.get('/team-data', isManager, getTeamData);
+router.get('/user-profile/:id', isManager, getUserProfile);
+
+// Financial Management
+router.get('/team-payslips', isManager, getTeamPayslips);
 
 // Leave Approval Workflow
-router.put('/leave/:id/approve', approveLeave);
-router.put('/leave/:id/reject', rejectLeave);
+router.put('/leave/:id/approve', isManager, approveLeave);
+router.put('/leave/:id/reject', isManager, rejectLeave);
+
 
 module.exports = router;

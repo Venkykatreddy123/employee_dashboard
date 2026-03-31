@@ -37,7 +37,11 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: data.message };
     } catch (err) {
       console.error("Login Error:", err);
-      return { success: false, message: 'Backend at port 3001 is unreachable.' };
+      // More specific error reporting
+      if (!window.navigator.onLine) {
+        return { success: false, message: 'No internet connection detected.' };
+      }
+      return { success: false, message: 'Backend server at port 3001 is unreachable. Please ensure the server is running.' };
     }
   };
 

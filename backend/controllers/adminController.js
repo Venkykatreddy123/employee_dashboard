@@ -90,4 +90,79 @@ const getAllData = async (req, res) => {
   }
 };
 
-module.exports = { createUser, updateUser, deleteUser, getAllData };
+// Generate Payslips from Salary Records
+const generatePayslips = async (req, res) => {
+  try {
+    // 1. Fetch all salary records
+    const salaries = await executeQuery('SELECT * FROM SALARIES');
+    
+    if (salaries.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'No salary records found' });
+    }
+
+    let generatedCount = 0;
+
+    for (const salary of salaries.rows) {
+      // Check if a payslip already exists for userId + month + year
+      const existing = await executeQuery(
+        'SELECT id FROM PAYSLIPS WHERE userId = ? AND month = ? AND year = ?', 
+        [salary.userId, salary.month, salary.year]
+      );
+      
+      if (existing.rows.length === 0) {
+        // Calculate fields: netSalary = baseSalary + bonus + allowances - deductions
+        const netSalary = salary.baseSalary + (salary.bonus || 0) + (salary.allowances || 0) - (salary.deductions || 0);
+
+        // Insert into PAYSLIPS table
+        await executeQuery(
+          'INSERT INTO PAYSLIPS (userId, month, year, baseSalary, bonus, allowances, deductions, netSalary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [salary.userId, salary.month, salary.year, salary.baseSalary, salary.bonus || 0, salary.allowances || 0, salary.deductions || 0, netSalary]
+        );
+        generatedCount++;
+      }
+    }
+
+    res.status(201).json({ success: true, message: `Successfully generated ${generatedCount} new payslips` });
+  } catch (err) {
+    console.error('❌ Generation Error:', err.message);
+    res.status(500).json({ success: false, message: 'Server error generating payslips', error: err.message });
+  }
+};
+
+/**
+ * Admin view all payslips with auto-sync feature
+ */
+const getAllPayslips = async (req, res) => {
+  try {
+    // 1. AUTO-SYNC: Generate missing payslips for all salary records before listing
+    const salaries = await executeQuery('SELECT * FROM SALARIES');
+    for (const salary of salaries.rows) {
+      const existing = await executeQuery(
+        'SELECT id FROM PAYSLIPS WHERE userId = ? AND month = ? AND year = ?', 
+        [salary.userId, salary.month, salary.year]
+      );
+      
+      if (existing.rows.length === 0) {
+        const netSalary = salary.baseSalary + (salary.bonus || 0) + (salary.allowances || 0) - (salary.deductions || 0);
+        await executeQuery(
+          'INSERT INTO PAYSLIPS (userId, month, year, baseSalary, bonus, allowances, deductions, netSalary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [salary.userId, salary.month, salary.year, salary.baseSalary, salary.bonus || 0, salary.allowances || 0, salary.deductions || 0, netSalary]
+        );
+      }
+    }
+
+    // 2. FETCH LIST:
+    const result = await executeQuery(`
+      SELECT p.*, u.name as employeeName 
+      FROM PAYSLIPS p
+      JOIN USERS u ON p.userId = u.id
+      ORDER BY p.year DESC, p.month DESC, p.generatedAt DESC
+    `);
+    res.json({ success: true, payslips: result.rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error fetching payslips', error: err.message });
+  }
+};
+
+
+module.exports = { createUser, updateUser, deleteUser, getAllData, generatePayslips, getAllPayslips };

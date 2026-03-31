@@ -19,12 +19,17 @@ const authRoutes = require('./routes/authRoutes');
 const employeeRoutes = require('./routes/employeeRoutes');
 const managerRoutes = require('./routes/managerRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const salaryRoutes = require('./routes/salaryRoutes');
+const payslipRoutes = require('./routes/payslipRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middlewares
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'] }));
+app.use(cors({
+  origin: "http://localhost:5173", // Updated as requested for Vite
+  credentials: true
+}));
 app.use(express.json());
 
 // API Request Logging
@@ -34,10 +39,15 @@ app.use((req, res, next) => {
 });
 
 // Register Route Modules
-app.use('/auth', authRoutes);
+// Test API route (Public)
+app.get("/api/test", (req, res) => res.json({ message: "Backend working" }));
+
+app.use('/api/auth', authRoutes);
 app.use('/api', employeeRoutes);
 app.use('/api', managerRoutes);
 app.use('/api', adminRoutes);
+app.use('/api/salary', salaryRoutes);
+app.use('/api/payslips', payslipRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -71,6 +81,9 @@ const startServer = (port) => {
   const server = app.listen(port, () => {
     console.log(`✅ Server running on port ${port}`);
     console.log(`📋 Health check available at: http://localhost:${port}/api/health\n`);
+    if (port === 3001) {
+      console.log("Server running on port 3001");
+    }
   });
 
   server.on('error', (err) => {
