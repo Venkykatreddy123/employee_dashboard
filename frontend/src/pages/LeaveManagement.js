@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../api/api';
+import api from '../services/api';
 import { Plane, Calendar, UserCheck, AlertCircle } from 'lucide-react';
 
 const LeaveManagement = () => {

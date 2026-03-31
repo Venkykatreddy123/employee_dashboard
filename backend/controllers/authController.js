@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallbacksecret';
+const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
 
 // Helper to find a user by email
 const findUserByEmail = async (email) => {
@@ -80,12 +80,11 @@ export const login = async (req, res) => {
             return res.status(401).json({ message: 'Invalid credentials!' });
         }
 
-        const secret = process.env.JWT_SECRET || 'supersecretkey123';
         console.log(`[Auth Controller] ✅ Authentication successful. Generating Token...`);
         
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role },
-            secret,
+            JWT_SECRET,
             { expiresIn: '24h' }
         );
 

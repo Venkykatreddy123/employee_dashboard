@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api/api';
+import api from '../services/api';
 
 const SalaryManagement = () => {
     const [employees, setEmployees] = useState([]);
@@ -30,19 +30,12 @@ const SalaryManagement = () => {
         setLoading(true);
         setMsg('');
         try {
-            await fetch('/api/salary', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({
-                    employee_id: selectedEmp,
-                    base_salary: formData.base_salary,
-                    bonus: formData.bonus,
-                    deductions: formData.deductions,
-                    month: formData.month
-                })
+            await api.post('/salary', {
+                employee_id: selectedEmp,
+                base_salary: formData.base_salary,
+                bonus: formData.bonus,
+                deductions: formData.deductions,
+                month: formData.month
             });
             setMsg('Salary successfully updated');
         } catch (err) {

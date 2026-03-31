@@ -38,12 +38,15 @@ export const getPayslips = async (req, res) => {
 
 export const generateAllPayslips = async (req, res) => {
     try {
+        const { month } = req.body;
+        const currentMonth = month || new Date().toLocaleString('default', { month: 'long' });
+        
         const employees = await db.execute("SELECT id FROM users");
 
         for (const emp of employees.rows) {
             const hasSalary = await db.execute({
-                sql: "SELECT id FROM salaries WHERE employee_id = ? AND month = 'March'",
-                args: [emp.id]
+                sql: "SELECT id FROM salaries WHERE employee_id = ? AND month = ?",
+                args: [emp.id, currentMonth]
             });
 
             if (hasSalary.rows.length > 0) {
@@ -57,12 +60,12 @@ export const generateAllPayslips = async (req, res) => {
                 if (exists.rows.length === 0) {
                     await db.execute({
                         sql: "INSERT INTO payslips (employee_id, salary_id, month) VALUES (?, ?, ?)",
-                        args: [emp.id, sid, 'March']
+                        args: [emp.id, sid, currentMonth]
                     });
                 }
             }
         }
-        res.status(200).json({ message: "Successfully executed generate-all protocol." });
+        res.status(200).json({ message: `Successfully executed generate-all protocol for ${currentMonth}.` });
     } catch(err) {
         console.error(err);
         res.status(500).json({ error: "Failed to globally generate payslips." });

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../api/api';
+import api from '../services/api';
 import AttendanceTable from '../components/AttendanceTable';
 import { LogIn, LogOut, CheckCircle, Play, Square } from 'lucide-react';
 import { format } from 'date-fns';

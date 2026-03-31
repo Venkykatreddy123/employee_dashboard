@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../api/api';
+import api from '../services/api';
 import { Plus, Search, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -47,10 +47,11 @@ const Employees = () => {
       if (editMode) {
         await api.put(`/employees/${currentEmp.id}`, currentEmp);
       } else {
-        await fetch('/api/employees', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: currentEmp.name, email: currentEmp.email, role: currentEmp.role, password: currentEmp.password })
+        await api.post('/employees', { 
+            name: currentEmp.name, 
+            email: currentEmp.email, 
+            role: currentEmp.role, 
+            password: currentEmp.password 
         });
       }
       setShowModal(false);

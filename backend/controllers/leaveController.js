@@ -2,7 +2,8 @@ import Leave from '../models/leaveModel.js';
 
 export const applyLeave = async (req, res) => {
     try {
-        await Leave.apply(req.body);
+        const leaveData = { ...req.body, user_id: req.user.id };
+        await Leave.apply(leaveData);
         res.status(201).json({ message: 'Leave application submitted' });
     } catch (error) {
         res.status(500).json({ message: 'Error applying for leave', error: error.message });
@@ -10,17 +11,15 @@ export const applyLeave = async (req, res) => {
 };
 
 export const getLeaves = async (req, res) => {
-    const { user_id, id, role } = req.query;
-    const targetId = id || user_id;
+    const { id } = req.query;
+    const { role, id: authUserId } = req.user;
     
     try {
         let result;
-        // If admin/manager and no specific target, get all. 
-        // Note: targetId is usually provided by the frontend as the requester's ID.
-        // We should allow all if the requester is an admin and didn't specify a different target.
-        if ((role === 'admin' || role === 'manager') && (!id || id === '')) {
+        if ((role === 'admin' || role === 'manager') && !id) {
             result = await Leave.getAll();
         } else {
+            const targetId = id || authUserId;
             result = await Leave.getByUser(targetId);
         }
         res.status(200).json(result);

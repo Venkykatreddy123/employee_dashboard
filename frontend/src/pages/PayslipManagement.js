@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import api from '../services/api';
 
 const PayslipManagement = () => {
     const [payslips, setPayslips] = useState([]);
@@ -10,10 +11,7 @@ const PayslipManagement = () => {
     useEffect(() => {
         const fetchPayslips = async () => {
             try {
-                const response = await fetch('/api/payslip', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-                });
-                const data = await response.json();
+                const { data } = await api.get('/payslip');
                 setPayslips(data);
             } catch (err) {
                 console.error(err);
@@ -26,10 +24,7 @@ const PayslipManagement = () => {
     const handleGenerateAll = async () => {
         try {
             setLoading(true);
-            await fetch('/api/payslip/generate-all', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-            });
+            await api.post('/payslip/generate-all');
             window.location.reload();
         } catch (err) {
             console.error(err);

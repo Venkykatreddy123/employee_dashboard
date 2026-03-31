@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import api from '../api/api';
+import api from '../services/api';
 import { Video, Plus, Calendar, Clock, Bookmark } from 'lucide-react';
 
 const MeetingsLog = () => {

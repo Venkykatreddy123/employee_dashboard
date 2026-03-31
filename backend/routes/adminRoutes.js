@@ -2,24 +2,13 @@ import express from 'express';
 import { db } from '../db.js';
 import User from '../models/userModel.js';
 import authMiddleware from '../middleware/authMiddleware.js';
+import roleMiddleware from '../middleware/roleMiddleware.js';
 
 const router = express.Router();
 router.use(authMiddleware);
 
-// Middleware to ensure user is admin or manager
-const adminOnly = (req, res, next) => {
-    if (req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'Forbidden: Admin access required' });
-    }
-    next();
-};
-
-const adminOrManager = (req, res, next) => {
-    if (req.user.role !== 'admin' && req.user.role !== 'manager') {
-        return res.status(403).json({ message: 'Forbidden: Admin or Manager access required' });
-    }
-    next();
-};
+const adminOnly = roleMiddleware(['admin']);
+const adminOrManager = roleMiddleware(['admin', 'manager']);
 
 // GET /api/admin/users
 router.get('/users', adminOrManager, async (req, res) => {

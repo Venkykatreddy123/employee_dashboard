@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
+import Login from './pages/LoginPage';
 import Dashboard from './pages/Dashboard';
 import Employees from './pages/Employees';
 import EmployeeDetails from './pages/EmployeeDetails';
@@ -11,9 +11,6 @@ import BonusManagement from './pages/BonusManagement';
 import MeetingsLog from './pages/MeetingsLog';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
-import AdminDashboard from './pages/AdminDashboard';
-import ManagerDashboard from './pages/ManagerDashboard';
-import EmployeeDashboard from './pages/EmployeeDashboard';
 import SalaryManagement from './pages/SalaryManagement';
 import PayslipManagement from './pages/PayslipManagement';
 
@@ -47,6 +44,7 @@ const RoleBasedRedirect = () => {
   
   if (!token) return <Navigate to="/login" />;
   
+  // All roles use the main Dashboard.js, which internally handles role-based display
   if (user.role === 'admin') return <Navigate to="/admin" />;
   if (user.role === 'manager') return <Navigate to="/manager" />;
   return <Navigate to="/employee" />;
@@ -58,44 +56,30 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         
-        {/* Role-Specific Dashboards */}
-        <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
-        <Route path="/manager" element={<ProtectedRoute allowedRoles={['manager']}><ManagerDashboard /></ProtectedRoute>} />
-        <Route path="/employee" element={<ProtectedRoute allowedRoles={['employee']}><EmployeeDashboard /></ProtectedRoute>} />
+        {/* All main roles now utilize the unified Dashboard analytics view */}
+        <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin']}><Dashboard /></ProtectedRoute>} />
+        <Route path="/manager" element={<ProtectedRoute allowedRoles={['manager']}><Dashboard /></ProtectedRoute>} />
+        <Route path="/employee" element={<ProtectedRoute allowedRoles={['employee']}><Dashboard /></ProtectedRoute>} />
         
-        {/* General Dashboard Catch-all or Home */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         
-        {/* Admin and Manager features */}
         <Route path="/employees" element={
           <ProtectedRoute allowedRoles={['admin', 'manager']}>
             <Employees />
           </ProtectedRoute>
         } />
         
-        {/* Protocol Details / Employee Specific View */}
         <Route path="/employee/:id" element={<ProtectedRoute><EmployeeDetails /></ProtectedRoute>} />
-        
-        {/* Attendance (Personal or Team based) */}
         <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-        
-        {/* Leave (Apply or Approve) */}
         <Route path="/leaves" element={<ProtectedRoute><LeaveManagement /></ProtectedRoute>} />
-        
-        {/* Break Tracking */}
         <Route path="/breaks" element={<ProtectedRoute><BreakTracker /></ProtectedRoute>} />
-        
-        {/* Bonus (Admin/Manager only view, or personal view) */}
         <Route path="/bonuses" element={
           <ProtectedRoute allowedRoles={['admin', 'manager']}>
             <BonusManagement />
           </ProtectedRoute>
         } />
-
-        {/* Meeting Logs */}
         <Route path="/meetings" element={<ProtectedRoute><MeetingsLog /></ProtectedRoute>} />
 
-        {/* Salary and Payslips */}
         <Route path="/salary" element={
           <ProtectedRoute allowedRoles={['admin', 'manager']}>
             <SalaryManagement />

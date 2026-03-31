@@ -2,6 +2,7 @@ import Bonus from '../models/bonusModel.js';
 
 export const assignBonus = async (req, res) => {
     try {
+        // Bonus assignment is typically done by admin/manager, but we use the body for the target employee
         await Bonus.assign(req.body);
         res.status(201).json({ message: 'Bonus assigned successfully' });
     } catch (error) {
@@ -10,11 +11,17 @@ export const assignBonus = async (req, res) => {
 };
 
 export const getBonuses = async (req, res) => {
-    const { user_id, id, role } = req.query;
-    const targetId = id || user_id;
+    const { id } = req.query;
+    const { role, id: authUserId } = req.user;
     
     try {
-        const result = targetId ? await Bonus.getByUser(targetId) : await Bonus.getAll();
+        let result;
+        if ((role === 'admin' || role === 'manager') && !id) {
+            result = await Bonus.getAll();
+        } else {
+            const targetId = id || authUserId;
+            result = await Bonus.getByUser(targetId);
+        }
         res.status(200).json(result);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching bonuses', error: error.message });

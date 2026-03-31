@@ -1,43 +1,47 @@
 import Break from '../models/breakModel.js';
 
 export const startBreak = async (req, res) => {
-    const { user_id } = req.body;
+    const { role, id: authUserId } = req.user;
+    const userId = (role === 'admin' || role === 'manager') ? (req.body.user_id || authUserId) : authUserId;
+
     try {
-        const active = await Break.getActiveBreak(user_id);
+        const active = await Break.getActiveBreak(userId);
         if (active) return res.status(400).json({ message: 'User already on break' });
 
         const now = new Date().toISOString();
-        await Break.start(user_id, now);
-        res.status(201).json({ message: 'Break started' });
+        const result = await Break.start(userId, now);
+        res.status(201).json({ id: Number(result.lastInsertRowid), message: 'Rest cycle initiated' });
     } catch (error) {
         res.status(500).json({ message: 'Error starting break', error: error.message });
     }
 };
 
 export const endBreak = async (req, res) => {
-    const { user_id } = req.body;
+    const { role, id: authUserId } = req.user;
+    const userId = (role === 'admin' || role === 'manager') ? (req.body.user_id || authUserId) : authUserId;
+
     try {
-        const active = await Break.getActiveBreak(user_id);
-        if (!active) return res.status(400).json({ message: 'No active break found' });
+        const active = await Break.getActiveBreak(userId);
+        if (!active) return res.status(400).json({ message: 'No active rest cycle found' });
 
         const now = new Date().toISOString();
-        await Break.end(active.id, now);
-        res.status(200).json({ message: 'Break ended' });
+        await Break.stop(active.id, now);
+        res.status(200).json({ message: 'Rest cycle concluded' });
     } catch (error) {
         res.status(500).json({ message: 'Error ending break', error: error.message });
     }
 };
 
 export const getBreaks = async (req, res) => {
-    const { user_id, id, role } = req.query;
-    const targetId = id || user_id;
+    const { id } = req.query;
+    const { role, id: authUserId } = req.user;
     
     try {
         let result;
-        // If admin/manager and no specific target, get all.
-        if ((role === 'admin' || role === 'manager') && (!id || id === '')) {
+        if ((role === 'admin' || role === 'manager') && !id) {
             result = await Break.getAll();
         } else {
+            const targetId = id || authUserId;
             result = await Break.getByUser(targetId);
         }
         res.status(200).json(result);
