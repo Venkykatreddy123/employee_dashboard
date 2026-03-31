@@ -33,6 +33,13 @@ exports.addEmployee = async (req, res) => {
             sql: "INSERT INTO employees (emp_id, name, email, password, role, department, joining_date, salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             args: [emp_id, name, email, password, role || 'Employee', department || 'General', joining_date, salary || 0]
         });
+        
+        // Sync with users table for authentication
+        await client.execute({
+            sql: "INSERT OR IGNORE INTO users (email, password, role) VALUES (?, ?, ?)",
+            args: [email, password, role || 'Employee']
+        });
+
         console.log(`✅ DB: Data persisted for ${emp_id}`);
         res.status(201).json({ success: true, message: 'Employee added successfully', emp_id });
     } catch (err) {
@@ -51,6 +58,13 @@ exports.updateEmployee = async (req, res) => {
     console.log(`📡 API: PUT /api/employees/${id}`);
 
     try {
+        // Get old email to update users table if email changed
+        const oldDataResult = await client.execute({
+            sql: "SELECT email FROM employees WHERE emp_id = ?",
+            args: [id]
+        });
+        const oldEmail = oldDataResult.rows[0]?.email;
+
         let sql = "UPDATE employees SET name = ?, email = ?, role = ?, department = ?, joining_date = ?, salary = ?";
         let args = [name, email, role, department, joining_date, salary];
         
@@ -63,6 +77,20 @@ exports.updateEmployee = async (req, res) => {
         args.push(id);
         
         await client.execute({ sql, args });
+
+        // Sync with users table
+        if (oldEmail) {
+            let userSql = "UPDATE users SET email = ?, role = ?";
+            let userArgs = [email, role];
+            if (password) {
+                userSql += ", password = ?";
+                userArgs.push(password);
+            }
+            userSql += " WHERE email = ?";
+            userArgs.push(oldEmail);
+            await client.execute({ sql: userSql, args: userArgs });
+        }
+
         console.log(`✅ DB: Record updated for ${id}`);
         res.json({ success: true, message: 'Employee updated successfully' });
     } catch (err) {
@@ -78,10 +106,25 @@ exports.deleteEmployee = async (req, res) => {
     const { id } = req.params; // emp_id
     console.log(`📡 API: DELETE /api/employees/${id}`);
     try {
+        // Get email to delete from users table too
+        const empResult = await client.execute({
+            sql: "SELECT email FROM employees WHERE emp_id = ?",
+            args: [id]
+        });
+        const empEmail = empResult.rows[0]?.email;
+
         await client.execute({
             sql: "DELETE FROM employees WHERE emp_id = ?",
             args: [id]
         });
+
+        if (empEmail) {
+            await client.execute({
+                sql: "DELETE FROM users WHERE email = ?",
+                args: [empEmail]
+            });
+        }
+
         console.log(`✅ DB: Record purged for ${id}`);
         res.json({ success: true, message: 'Employee deleted' });
     } catch (err) {

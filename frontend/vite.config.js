@@ -9,7 +9,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000', // Consistent with Modernized Backend
+        target: 'http://localhost:5050', // Consistent with Modernized Backend
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path // Maintaining the /api prefix for backend mapping

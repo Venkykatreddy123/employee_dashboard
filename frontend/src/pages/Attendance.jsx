@@ -18,7 +18,7 @@ const Attendance = () => {
   
   const [adminFilters, setAdminFilters] = useState({ date: '', employee: '' });
 
-  const isAdmin = user?.role === 'Admin';
+  const canSeeAll = ['Admin', 'HR', 'Manager'].includes(user?.role);
 
   const fetchData = useCallback(async (isClear = false) => {
     try {
@@ -44,7 +44,7 @@ const Attendance = () => {
         setHistory(historyRes.data.data);
       }
 
-      if (isAdmin) {
+      if (canSeeAll) {
         const queryParams = new URLSearchParams();
         if (filtersToUse.date) queryParams.append('date', filtersToUse.date);
         if (filtersToUse.employee) queryParams.append('emp_id', filtersToUse.employee);
@@ -63,12 +63,12 @@ const Attendance = () => {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, adminFilters]);
+  }, [canSeeAll, adminFilters]);
 
   useEffect(() => {
     fetchData();
     let interval;
-    if (isAdmin) {
+    if (canSeeAll) {
       interval = setInterval(() => fetchData(), 60000); 
     }
     return () => clearInterval(interval);
@@ -168,7 +168,7 @@ const Attendance = () => {
                     <div className="w-24 h-24 bg-blue-600 text-white rounded-[40px] flex items-center justify-center shadow-4xl shadow-blue-200"><History size={48} /></div>
                     <div>
                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none select-none">Registry Audit Log</h2>
-                       <p className="text-[12px] font-black text-slate-400 tracking-[0.5em] uppercase mt-4 italic">{isAdmin ? 'Enterprise Multi-Node History Telemetry' : 'Personal Lifecycle Activity Stream'}</p>
+                       <p className="text-[12px] font-black text-slate-400 tracking-[0.5em] uppercase mt-4 italic">{canSeeAll ? 'Enterprise Multi-Node History Telemetry' : 'Personal Lifecycle Activity Stream'}</p>
                     </div>
                  </div>
                  <div className="flex gap-4">
@@ -178,7 +178,7 @@ const Attendance = () => {
               </div>
 
               <div className="p-12 flex-1">
-                 {isAdmin ? (
+                 {canSeeAll ? (
                    <div className="space-y-12">
                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 bg-slate-50/40 p-10 rounded-[50px] border border-slate-100/50">
                         <div className="space-y-3">
@@ -319,7 +319,7 @@ const Attendance = () => {
                     <div className="text-center relative">
                        <p className="text-slate-500 font-black uppercase tracking-[0.8em] text-[12px] mb-10 italic leading-none">Total Observed Handshakes</p>
                        <p className="text-[200px] font-black tracking-tighter text-white drop-shadow-[0_40px_40px_rgba(37,99,235,0.6)] leading-none select-none italic font-serif">
-                          {isAdmin ? allAttendance.length : history.length}
+                          {canSeeAll ? allAttendance.length : history.length}
                        </p>
                     </div>
 

@@ -146,7 +146,7 @@ exports.getAllAttendance = async (req, res) => {
         let query = `
             SELECT a.id, e.name as employee_name, a.date, a.check_in_time, a.check_out_time, a.total_hours, a.status, a.employee_id
             FROM attendance a
-            LEFT JOIN employees e ON a.employee_id = e.id
+            LEFT JOIN employees e ON a.employee_id = e.emp_id
         `;
         const args = [];
         const filters = [];

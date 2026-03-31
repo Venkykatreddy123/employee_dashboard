@@ -11,6 +11,7 @@ import Profile from './pages/Profile'
 import Login from './pages/Login'
 import Salary from './pages/Salary'
 import Performance from './pages/Performance'
+import MeetingsLog from './pages/MeetingsLog'
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -46,6 +47,7 @@ const App = () => {
         <Route path="profile" element={<Profile />} />
         <Route path="salary" element={<Salary />} />
         <Route path="performance" element={<Performance />} />
+        <Route path="meetings" element={<MeetingsLog />} />
       </Route>
       
       <Route path="*" element={<Navigate to="/" replace />} />

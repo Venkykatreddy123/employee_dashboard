@@ -9,7 +9,8 @@ import {
   LogOut, 
   Award,
   Wallet,
-  Clock
+  Clock,
+  Video
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,6 +25,7 @@ const Sidebar = () => {
     { to: '/attendance', icon: Clock, label: 'Attendance', roles: ['Admin', 'Manager', 'HR', 'Employee'] },
     { to: '/salary', icon: Wallet, label: 'Salaries', roles: ['Admin', 'HR', 'Employee'] },
     { to: '/performance', icon: Award, label: 'Performance', roles: ['Admin', 'Manager', 'HR', 'Employee'] },
+    { to: '/meetings', icon: Video, label: 'Meetings', roles: ['Admin', 'Manager', 'HR', 'Employee'] },
     { to: '/profile', icon: UserCircle, label: 'My Profile', roles: ['Admin', 'Manager', 'HR', 'Employee'] },
   ];
 

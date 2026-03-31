@@ -11,8 +11,8 @@ router.get('/me', getMyAttendance);
 // Personnel operational history (scoped by individual identity from JWT)
 router.get('/history', getMyHistory);
 
-// Organizational pulse monitoring (Admin/HR Tiers)
-router.get('/all', authorize(['Admin', 'HR']), getAllAttendance);
+// Organizational pulse monitoring (Admin/HR/Manager Tiers)
+router.get('/all', authorize(['Admin', 'HR', 'Manager']), getAllAttendance);
 
 // Arrival event
 router.post('/checkin', checkIn);

@@ -61,15 +61,16 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
-      // Improved error output
-      const message = error.response?.data?.message || 
+      // Identity Handshake Failure: Process strategic error payload
+      const message = error.response?.data?.error || 
+                     error.response?.data?.message || 
                      error.message || 
-                     'Unable to connect to the backend server. Please verify the API status.';
+                     'Identity Terminal Offline: Please verify backend sync.';
       
-      console.error('[AuthContext] Login Handshake Failure:', {
+      console.error('[AuthContext] Handshake Rejected:', {
+        serverError: error.response?.data?.error,
         serverMessage: error.response?.data?.message,
-        axiosError: error.message,
-        fullError: error
+        axiosError: error.message
       });
       
       return { 

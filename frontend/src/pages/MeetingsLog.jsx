@@ -1,123 +1,265 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
-import { Video, Plus, Calendar, Clock, Bookmark } from 'lucide-react';
+import { 
+  Video, Plus, Calendar, Clock, Bookmark, Search, Filter, 
+  Trash2, Edit2, CheckCircle, AlertCircle, RefreshCw, X, MoreVertical
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const MeetingsLog = () => {
+  const { user } = useAuth();
   const [meetings, setMeetings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [formData, setFormData] = useState({ title: '', meeting_date: '', duration: '', notes: '' });
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const [editingMeeting, setEditingMeeting] = useState(null);
+  const [formData, setFormData] = useState({ 
+    title: '', 
+    meeting_date: '', 
+    duration: '', 
+    notes: '' 
+  });
+  
+  const canManage = ['Admin', 'HR', 'Manager'].includes(user?.role);
 
-  const fetchMeetings = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
+  const fetchMeetings = useCallback(async () => {
     try {
-      console.log('[MeetingsLog] Fetching engagement records...');
-      const { data } = await api.get(`/meetings?role=${user.role}&id=${user.emp_id}`);
-      setMeetings(data);
+      setLoading(true);
+      console.log('📡 [Meetings] Synchronizing with Cloud Registry...');
+      const response = await api.get('/meetings');
+      
+      if (response.data.success) {
+        setMeetings(response.data.data);
+      }
     } catch (err) {
-      console.error('[MeetingsLog] Fetch Error:', err);
+      console.error('❌ [Meetings] Cloud Fetch Failure:', err);
+      toast.error('Identity sync error. Database cloud tunnel failed.');
+    } finally {
+      setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchMeetings();
-  }, []);
+    const interval = setInterval(fetchMeetings, 60000); // 60s Auto-Sync Pulse
+    return () => clearInterval(interval);
+  }, [fetchMeetings]);
+
+  const handleOpenModal = (meeting = null) => {
+    if (meeting) {
+      setEditingMeeting(meeting.id);
+      setFormData({
+        title: meeting.title,
+        meeting_date: meeting.meeting_date,
+        duration: meeting.duration,
+        notes: meeting.notes
+      });
+    } else {
+      setEditingMeeting(null);
+      setFormData({ 
+        title: '', 
+        meeting_date: new Date().toISOString().split('T')[0], 
+        duration: 30, 
+        notes: '' 
+      });
+    }
+    setShowModal(true);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      console.log(`[MeetingsLog] Logging new session: ${formData.title}`);
-      await api.post('/meetings', { ...formData, user_id: user.emp_id });
+      if (editingMeeting) {
+        await api.put(`/meetings/${editingMeeting}`, { ...formData, user_id: user.emp_id });
+        toast.success('Engagement Session Synchronized');
+      } else {
+        await api.post('/meetings', { ...formData, user_id: user.emp_id });
+        toast.success('New Productivity Session Persisted');
+      }
       setShowModal(false);
-      setFormData({ title: '', meeting_date: '', duration: '', notes: '' });
       fetchMeetings();
     } catch (err) {
-      console.error('[MeetingsLog] Log Error:', err);
-      alert('Error logging meeting: ' + (err.response?.data?.message || err.message));
+      toast.error(err.response?.data?.message || 'Operational handshake failed');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Decommission this meeting record? This action is irreversible.')) {
+      try {
+        await api.delete(`/meetings/${id}`);
+        toast.success('Record Successfully Purged');
+        fetchMeetings();
+      } catch (err) {
+        toast.error('Infrastructure purge failure');
+      }
     }
   };
 
   return (
-    <div className="px-4 py-3">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h4 className="fw-bold mb-1">Productivity & Meeting Logs</h4>
-          <p className="text-secondary small mb-0">Track internal and external engagement sessions.</p>
+    <div className="space-y-12 max-w-7xl mx-auto pb-16 animate-fade-in text-gray-900">
+      {/* Premium Header */}
+      <motion.div 
+        initial={{ y: -20, opacity: 0 }} 
+        animate={{ y: 0, opacity: 1 }}
+        className="flex flex-col lg:flex-row justify-between items-start lg:items-center p-12 bg-white rounded-[60px] border-2 border-slate-50 shadow-2xl relative overflow-hidden group"
+      >
+        <div className="absolute inset-x-0 bottom-0 h-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 shadow-[0_5px_20px_rgba(79,70,229,0.4)]"></div>
+        <div className="relative z-10 space-y-4">
+          <h1 className="text-6xl font-black text-slate-900 tracking-tighter italic uppercase leading-none">Meeting Registry</h1>
+          <p className="text-slate-400 font-bold uppercase tracking-[0.5em] text-[11px] flex items-center gap-4">
+             <div className="w-3.5 h-3.5 rounded-full bg-indigo-500 animate-pulse transition-all shadow-[0_0_10px_rgba(99,102,241,0.5)]" />
+             Corporate Communications Hub &bull; Terminal: <span className="text-indigo-600 font-black">Online</span>
+          </p>
         </div>
-        <button className="btn btn-primary d-flex align-items-center gap-2 shadow fw-bold" onClick={() => setShowModal(true)}>
-          <Plus size={18} /> New Entry
-        </button>
+        
+        {canManage && (
+          <button 
+            onClick={() => handleOpenModal()} 
+            className="mt-8 lg:mt-0 bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-6 rounded-[30px] font-black flex items-center gap-4 shadow-3xl shadow-indigo-200 transition-all active:scale-95 uppercase tracking-widest text-sm italic group"
+          >
+            <Plus size={24} className="group-hover:rotate-90 transition-transform" />
+            Establish Session
+          </button>
+        )}
+      </motion.div>
+
+      {/* Main Grid Content */}
+      <div className="grid grid-cols-1 gap-12">
+        <motion.div 
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="bg-white rounded-[60px] border border-slate-100 shadow-3xl overflow-hidden min-h-[600px] flex flex-col"
+        >
+          <div className="p-12 border-b border-slate-50 flex items-center justify-between bg-indigo-50/10">
+             <div className="flex items-center gap-8">
+                <div className="w-20 h-20 bg-indigo-600 text-white rounded-[35px] flex items-center justify-center shadow-4xl shadow-indigo-200"><Video size={40} /></div>
+                <div>
+                   <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">Internal Engagements</h2>
+                   <p className="text-[11px] font-black text-slate-400 tracking-[0.5em] uppercase mt-4 italic font-mono">Registry Records Synchronized in Real-Time</p>
+                </div>
+             </div>
+             <button onClick={fetchMeetings} className="p-5 bg-white text-slate-400 rounded-3xl border border-slate-100 hover:text-indigo-600 transition-all shadow-sm">
+                <RefreshCw size={28} className={loading ? 'animate-spin' : ''} />
+             </button>
+          </div>
+
+          <div className="p-12">
+             {loading && meetings.length === 0 ? (
+               <div className="py-32 text-center">
+                 <RefreshCw className="animate-spin mx-auto text-indigo-400 mb-6" size={60} />
+                 <p className="text-slate-300 font-black uppercase tracking-[0.5em] text-sm italic">Requesting Turso Clusters...</p>
+               </div>
+             ) : meetings.length === 0 ? (
+               <div className="py-48 text-center text-slate-200 font-black uppercase tracking-[1em] italic text-3xl opacity-20 select-none">Registry Empty</div>
+             ) : (
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                 {meetings.map((meeting) => (
+                   <motion.div 
+                     key={meeting.id} 
+                     whileHover={{ y: -10 }}
+                     className="bg-white p-10 rounded-[50px] border-2 border-slate-50 hover:shadow-4xl transition-all group relative overflow-hidden flex flex-col border-b-[12px] border-indigo-600/10 hover:border-indigo-600"
+                   >
+                     <div className="flex justify-between items-start mb-8">
+                       <div className="bg-indigo-50 p-4 rounded-3xl text-indigo-600">
+                          <Calendar size={24} />
+                       </div>
+                       {canManage && (
+                         <div className="flex gap-2">
+                           <button onClick={() => handleOpenModal(meeting)} className="p-3 bg-slate-50 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all shadow-inner"><Edit2 size={16} /></button>
+                           <button onClick={() => handleDelete(meeting.id)} className="p-3 bg-slate-50 text-slate-400 hover:text-red-600 rounded-2xl transition-all shadow-inner"><Trash2 size={16} /></button>
+                         </div>
+                       )}
+                     </div>
+
+                     <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic leading-tight mb-4 group-hover:text-indigo-600 transition-colors">{meeting.title}</h3>
+                     <p className="text-slate-400 text-sm font-bold line-clamp-3 mb-8 italic">{meeting.notes || 'No protocol notes archived for this session.'}</p>
+                     
+                     <div className="mt-auto space-y-4 pt-6 border-t border-slate-50">
+                       <div className="flex items-center justify-between">
+                         <div className="flex items-center gap-3 text-slate-400 text-[11px] font-black uppercase tracking-widest">
+                           <Clock size={14} className="text-indigo-500" />
+                           {meeting.duration} Mins
+                         </div>
+                         <div className="flex items-center gap-3 text-slate-400 text-[11px] font-black uppercase tracking-widest">
+                           <Bookmark size={14} className="text-indigo-500" />
+                           {meeting.meeting_date}
+                         </div>
+                       </div>
+                       
+                       <div className="flex items-center gap-4 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                          <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-[10px] text-white font-black">{meeting.user_name?.[0] || 'U'}</div>
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic">{meeting.user_name || 'System Protocol'}</p>
+                       </div>
+                     </div>
+                   </motion.div>
+                 ))}
+               </div>
+             )}
+          </div>
+        </motion.div>
       </div>
 
-      <div className="table-custom shadow-sm border-0">
-        <table className="table table-hover mb-0">
-          <thead>
-            <tr>
-              {user.role !== 'employee' && <th>User Identity</th>}
-              <th>Topic / Title</th>
-              <th>Date</th>
-              <th>Duration</th>
-              <th>Protocol Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {meetings.length === 0 ? (
-              <tr><td colSpan="5" className="text-center p-5 text-secondary">No engagement sessions logged in history.</td></tr>
-            ) : (
-              meetings.map(m => (
-                <tr key={m.id} className="align-middle">
-                  {user.role !== 'employee' && <td>{m.user_name}</td>}
-                  <td className="fw-bold text-dark">{m.title}</td>
-                  <td>{m.meeting_date}</td>
-                  <td>{m.duration} mins</td>
-                  <td><span className="badge bg-success-light text-success border-success">CONCLUDED</span></td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {showModal && (
-        <div className="modal d-block" style={{ background: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content shadow-lg border-0" style={{ borderRadius: '15px' }}>
-              <div className="modal-header border-0 pb-0">
-                <h5 className="fw-bold">Log New Productivity Session</h5>
-                <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
-              </div>
-              <form onSubmit={handleSubmit}>
-                <div className="modal-body">
-                  <div className="row g-3">
-                    <div className="col-12">
-                      <label className="form-label small fw-bold text-secondary">Meeting Title</label>
-                      <input type="text" className="form-control" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required placeholder="e.g. Sprint Planning" />
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label small fw-bold text-secondary">Session Date</label>
-                      <input type="date" className="form-control" value={formData.meeting_date} onChange={e => setFormData({...formData, meeting_date: e.target.value})} required />
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label small fw-bold text-secondary">Duration (mins)</label>
-                      <input type="number" className="form-control" value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} required />
-                    </div>
-                    <div className="col-12">
-                      <label className="form-label small fw-bold text-secondary">Session Notes</label>
-                      <textarea className="form-control" rows="3" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Session highlights..."></textarea>
-                    </div>
+      {/* Modal - Modern Design */}
+      <AnimatePresence>
+        {showModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowModal(false)}
+              className="absolute inset-0 bg-slate-900/60 backdrop-blur-2xl"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, y: 20, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.9, y: 20, opacity: 0 }}
+              className="bg-white rounded-[60px] shadow-5xl w-full max-w-3xl relative z-10 overflow-hidden border border-white/20"
+            >
+              <div className="p-12 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
+                <div className="flex items-center gap-8 text-indigo-600">
+                  <div className="w-16 h-16 bg-indigo-600 text-white rounded-[25px] flex items-center justify-center"><Video size={32} /></div>
+                  <div>
+                    <h2 className="text-4xl font-black tracking-tighter uppercase italic select-none">Session Protocol</h2>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2 italic">Infrastructure Sync Active</p>
                   </div>
                 </div>
-                <div className="modal-footer border-0 pt-0">
-                  <button type="button" className="btn btn-light" onClick={() => setShowModal(false)}>Abort</button>
-                  <button type="submit" className="btn btn-primary px-4 fw-bold shadow">Synchronize</button>
+                <button onClick={() => setShowModal(false)} className="bg-white p-5 rounded-full hover:bg-slate-100 text-slate-300 transition-all shadow-inner border border-slate-100"><X size={24} /></button>
+              </div>
+
+              <form onSubmit={handleSubmit} className="p-14 space-y-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Event Topic</label>
+                    <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[30px] font-black focus:border-indigo-600 outline-none shadow-sm text-md" placeholder="e.g. System Audit" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Engagement Date</label>
+                    <input required type="date" value={formData.meeting_date} onChange={e => setFormData({...formData, meeting_date: e.target.value})} className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[30px] font-black focus:border-indigo-600 outline-none shadow-sm text-md font-mono" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Duration (Minutes)</label>
+                    <input required type="number" value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} className="w-full p-6 bg-slate-50 border border-slate-100 rounded-[30px] font-black focus:border-indigo-600 outline-none shadow-sm text-md font-mono" />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Responsible Node</label>
+                    <input type="text" readOnly value={user.name} className="w-full p-6 bg-slate-100 border border-slate-200 rounded-[30px] font-black text-slate-400 outline-none shadow-inner" />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Protocol Notes</label>
+                  <textarea rows="4" value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} className="w-full p-8 bg-slate-50 border border-slate-100 rounded-[40px] font-black focus:border-indigo-600 outline-none shadow-sm text-md italic" placeholder="Document critical session highlights..."></textarea>
+                </div>
+
+                <div className="pt-8 flex gap-6">
+                   <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-7 bg-slate-100 text-slate-400 font-black rounded-3xl hover:bg-slate-200 transition-all uppercase tracking-widest text-xs italic">Abandon</button>
+                   <button type="submit" className="flex-[2] py-7 bg-indigo-600 text-white font-black rounded-3xl shadow-4xl shadow-indigo-100 hover:bg-indigo-700 transition-all uppercase tracking-widest text-xs italic">Synchronize Node</button>
                 </div>
               </form>
-            </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 };

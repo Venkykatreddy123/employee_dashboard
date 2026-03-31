@@ -8,7 +8,17 @@ const setupDatabase = async () => {
     try {
         console.log('🏗️  Enforcing Master Data Schema [Identity Registry]...');
 
-        // 0. Migration Safeguard: Inspect Attendance Table
+        // 0. Migration Safeguard: Inspect Employees Table
+        const empTableInfo = await client.execute("PRAGMA table_info(employees)");
+        const hasEmpId = empTableInfo.rows.some(r => r.name === 'emp_id');
+        const hasPassword = empTableInfo.rows.some(r => r.name === 'password');
+        
+        if (empTableInfo.rows.length > 0 && (!hasEmpId || !hasPassword)) {
+            console.log('🔄 Outdated Employee Schema detected. Migrating to full registry...');
+            await client.execute("DROP TABLE employees");
+        }
+
+        // 0.1 Inspection of Attendance Table
         const attendInfo = await client.execute("PRAGMA table_info(attendance)");
         const hasEmployeeId = attendInfo.rows.some(r => r.name === 'employee_id');
         
@@ -154,7 +164,17 @@ const setupDatabase = async () => {
             )
         `);
 
-        // 11. Core Seeding Logic
+        // 11. Core Auth Registry (Users)
+        await client.execute(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT DEFAULT 'Employee'
+            )
+        `);
+
+        // 12. Core Seeding Logic
         console.log('🌱 Checking Master Registry for core personnel...');
         const userCheck = await client.execute("SELECT COUNT(*) as count FROM employees");
         if (userCheck.rows[0].count === 0) {
@@ -170,11 +190,24 @@ const setupDatabase = async () => {
                     sql: "INSERT INTO employees (emp_id, name, email, password, role, department, joining_date, salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     args: u
                 });
+                // Sync with auth table
+                await client.execute({
+                    sql: "INSERT OR IGNORE INTO users (email, password, role) VALUES (?, ?, ?)",
+                    args: [u[2], u[3], u[4]]
+                });
             }
 
-            console.log('✅ Identity Registry Initialized.');
+            console.log('✅ Identity & Auth Registry Initialized.');
         } else {
-            console.log('✅ Personnel Registry active.');
+            // Also ensure users table is synchronized if employees exist but users might be new
+            console.log('✅ Personnel Registry active. Verifying auth sync...');
+            const existingEmp = await client.execute("SELECT email, password, role FROM employees");
+            for (const u of existingEmp.rows) {
+                await client.execute({
+                    sql: "INSERT OR IGNORE INTO users (email, password, role) VALUES (?, ?, ?)",
+                    args: [u.email, u.password, u.role]
+                });
+            }
         }
 
         console.log('✅ Final Cloud Schema Synchronized.');

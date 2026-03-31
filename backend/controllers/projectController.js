@@ -36,9 +36,9 @@ exports.getAllProjects = async (req, res) => {
     try {
         const projectsQuery = await client.execute("SELECT * FROM projects ORDER BY created_at DESC");
         const assignmentsQuery = await client.execute(`
-            SELECT pa.project_id, u.emp_id, u.name 
+            SELECT pa.project_id, e.emp_id, e.name 
             FROM project_assignments pa 
-            JOIN users u ON pa.employee_id = u.emp_id
+            JOIN employees e ON pa.employee_id = e.emp_id
         `);
 
         const projectMap = projectsQuery.rows.map(p => {
@@ -77,9 +77,9 @@ exports.getProjectsByEmployee = async (req, res) => {
         if (projectIds.length > 0) {
             const placeholders = projectIds.map(() => '?').join(',');
             const assignmentsQuery = await client.execute({
-                sql: `SELECT pa.project_id, u.emp_id, u.name 
+                sql: `SELECT pa.project_id, e.emp_id, e.name 
                       FROM project_assignments pa 
-                      JOIN users u ON pa.employee_id = u.emp_id 
+                      JOIN employees e ON pa.employee_id = e.emp_id 
                       WHERE pa.project_id IN (${placeholders})`,
                 args: projectIds
             });
