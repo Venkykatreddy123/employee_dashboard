@@ -6,7 +6,13 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-router.get('/', meetingController.getMeetings);
+// POST Create meeting (Manager)
 router.post('/', meetingController.createMeeting);
+
+// GET Manager created meetings
+router.get('/manager', meetingController.getManagerMeetings);
+
+// GET Employee assigned meetings
+router.get('/employee', meetingController.getEmployeeMeetings);
 
 export default router;

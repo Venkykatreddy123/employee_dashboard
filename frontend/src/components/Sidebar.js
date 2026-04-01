@@ -31,7 +31,8 @@ const Sidebar = ({ userRole }) => {
       { name: 'Leave Queue', path: '/leaves', icon: <CalendarDays size={20} /> },
       { name: 'Break History', path: '/breaks', icon: <Coffee size={20} /> },
       { name: 'Performance/Bonus', path: '/bonuses', icon: <Heart size={20} /> },
-      { name: 'Meeting Logs', path: '/meetings', icon: <Video size={20} /> },
+      { name: 'Tactical Syncs', path: '/manager/meetings', icon: <Video size={20} /> },
+      { name: 'Meeting Logs', path: '/meetings', icon: <FileText size={20} /> },
       { name: 'Salary Control', path: '/salary', icon: <DollarSign size={20} /> },
       { name: 'All Payslips', path: '/payslips', icon: <FileText size={20} /> },
     ],
@@ -40,7 +41,7 @@ const Sidebar = ({ userRole }) => {
       { name: 'Team Directory', path: '/employees', icon: <Users size={20} /> },
       { name: 'Team Attendance', path: '/attendance', icon: <Clock size={20} /> },
       { name: 'Leave Approvals', path: '/leaves', icon: <CalendarDays size={20} /> },
-      { name: 'Productivity Logs', path: '/meetings', icon: <Video size={20} /> },
+      { name: 'Meeting Scheduler', path: '/manager/meetings', icon: <Video size={20} /> },
       { name: 'Team Payslips', path: '/payslips', icon: <FileText size={20} /> },
     ],
     employee: [
@@ -48,7 +49,7 @@ const Sidebar = ({ userRole }) => {
       { name: 'Session Tracker', path: '/attendance', icon: <Clock size={20} /> },
       { name: 'Leave Application', path: '/leaves', icon: <CalendarDays size={20} /> },
       { name: 'Break Tracker', path: '/breaks', icon: <Coffee size={20} /> },
-      { name: 'My Meetings', path: '/meetings', icon: <Video size={20} /> },
+      { name: 'Assigned Meetings', path: '/employee/meetings', icon: <Video size={20} /> },
       { name: 'My Payslips', path: '/payslips', icon: <FileText size={20} /> },
     ]
   };

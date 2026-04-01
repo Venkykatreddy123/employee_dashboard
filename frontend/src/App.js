@@ -8,6 +8,8 @@ import Attendance from './pages/Attendance';
 import LeaveManagement from './pages/LeaveManagement';
 import BreakTracker from './pages/BreakTracker';
 import BonusManagement from './pages/BonusManagement';
+import ManagerMeetings from './pages/ManagerMeetings';
+import EmployeeMeetings from './pages/EmployeeMeetings';
 import MeetingsLog from './pages/MeetingsLog';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
@@ -78,7 +80,9 @@ function App() {
             <BonusManagement />
           </ProtectedRoute>
         } />
-        <Route path="/meetings" element={<ProtectedRoute><MeetingsLog /></ProtectedRoute>} />
+        <Route path="/meetings" element={<ProtectedRoute><EmployeeMeetings /></ProtectedRoute>} />
+        <Route path="/manager/meetings" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><ManagerMeetings /></ProtectedRoute>} />
+        <Route path="/employee/meetings" element={<ProtectedRoute allowedRoles={['employee']}><EmployeeMeetings /></ProtectedRoute>} />
 
         <Route path="/salary" element={
           <ProtectedRoute allowedRoles={['admin', 'manager']}>

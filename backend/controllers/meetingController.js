@@ -1,29 +1,69 @@
 import Meeting from '../models/meetingModel.js';
+import crypto from 'crypto';
 
 export const createMeeting = async (req, res) => {
+    let { title, description, date, time, participants, meeting_link } = req.body;
+    const { id: managerId } = req.user;
+
     try {
-        const meetingData = { ...req.body, user_id: req.user.id };
-        await Meeting.create(meetingData);
-        res.status(201).json({ message: 'Meeting scheduled successfully' });
+        if (!title || !date || !time) return res.status(400).json({ message: 'Title, date, and time are required' });
+        
+        // Ensure meeting_link is valid or generate fallback
+        if (!meeting_link || !meeting_link.startsWith('http')) {
+            meeting_link = 'https://meet.google.com/new';
+        }
+
+        const meetingData = { 
+            user_id: managerId, 
+            title, 
+            description: description || '', 
+            date, 
+            time, 
+            meeting_link 
+        };
+
+        const participantIds = Array.isArray(participants) ? participants : [];
+        const meetingId = await Meeting.create(meetingData, participantIds);
+
+        res.status(201).json({ 
+            id: meetingId, 
+            meeting_link, 
+            message: 'Protocol established. Meeting sync link initialized.' 
+        });
     } catch (error) {
         res.status(500).json({ message: 'Error scheduling meeting', error: error.message });
     }
 };
 
-export const getMeetings = async (req, res) => {
-    const { id } = req.query;
-    const { role, id: authUserId } = req.user;
-    
+export const getManagerMeetings = async (req, res) => {
+    const { id: managerId } = req.user;
     try {
-        let result;
-        if ((role === 'admin' || role === 'manager') && !id) {
-            result = await Meeting.getAll();
-        } else {
-            const targetId = id || authUserId;
-            result = await Meeting.getByUser(targetId);
-        }
-        res.status(200).json(result);
+        const meetings = await Meeting.getByManager(managerId);
+        // For each meeting, optionally fetch participants
+        const detailedMeetings = await Promise.all(meetings.map(async (m) => {
+            const parts = await Meeting.getParticipants(m.id);
+            return { 
+                ...m, 
+                participants: parts,
+                id: Number(m.id) // LibSql BigInt conversion to secure Number
+            };
+        }));
+        res.status(200).json(detailedMeetings);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching meetings', error: error.message });
+        res.status(500).json({ message: 'Error fetching manager meetings', error: error.message });
+    }
+};
+
+export const getEmployeeMeetings = async (req, res) => {
+    const { id: employeeId } = req.user;
+    try {
+        const meetings = await Meeting.getByEmployee(employeeId);
+        const results = meetings.map(m => ({
+            ...m,
+            id: Number(m.id)
+        }));
+        res.status(200).json(results);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching assigned meetings', error: error.message });
     }
 };
