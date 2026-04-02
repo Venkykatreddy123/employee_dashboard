@@ -2,11 +2,14 @@ import axios from 'axios';
 
 /**
  * 🚀 [API Instance] Synchronized Production Gateway
- * Dynamically resolves the backend hub based on environment:
- * - Production: VITE_API_URL (e.g., https://empdash.onrender.com/api)
- * - Development: /api (proxied via Vite to localhost:5000)
  */
-const baseURL = import.meta.env.VITE_API_URL || '/api';
+let baseURL = import.meta.env.VITE_API_URL || '/api';
+
+// Fallback logic: Ensure production URLs always carry the /api prefix 
+// to match the backend's organizational topology (index.js app.use('/api', ...))
+if (baseURL.startsWith('http') && !baseURL.endsWith('/api')) {
+  baseURL = `${baseURL}/api`;
+}
 
 console.log(`📡 [API Client] Initializing session with baseURL: ${baseURL}`);
 

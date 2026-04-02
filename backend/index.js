@@ -29,21 +29,15 @@ const userRoutes = require('./routes/userRoutes');
 const app = express();
 
 // 3. Middlewares: Production Hardening
-const allowedOrigins = [
-  'http://localhost:5173', 
-  'http://localhost:3000',
-  'https://emp-dash-seven.vercel.app', // Core production node
-  '*' // Fallback for initial cloud handshake
-];
-
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS Policy: Tunneling rejected for this origin.'));
-    }
-  },
+  origin: [
+    process.env.CORS_ORIGIN,
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://emp-dash-seven.vercel.app',
+    'capacitor://localhost',
+    'http://localhost'
+  ].filter(Boolean),
   credentials: true
 }));
 
@@ -54,10 +48,13 @@ app.use(morgan('📡 [:method] :url -> Status: :status (:response-time ms)'));
 // 4. API Request Auditing for Cloud Debugging
 app.use((req, res, next) => {
   console.log(`[CLOUD TRACE] ${new Date().toISOString()} | ${req.method} ${req.url}`);
+  if (req.method === 'POST') console.log('REQ BODY:', req.body);
   next();
 });
 
 // 5. Health Handshake
+app.get('/', (req,res)=>res.send('API working'))
+
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: "ok", 
@@ -82,7 +79,7 @@ app.use('/api/bonus', bonusRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/users', userRoutes);
 
-app.get('/', (req, res) => res.json({ 
+app.get('/api', (req, res) => res.json({ 
     success: true, 
     message: 'Admin-Employee Dashboard Backend API Operational',
     status: 'Cloud Ready',
@@ -114,7 +111,7 @@ const startServer = async () => {
         console.log('✅ Final Hub Schema Synchronized.');
 
         // Dynamic Port Binding for Render Excellence
-        const PORT = process.env.PORT || 5000; 
+        const PORT = process.env.PORT || 10000; 
         app.listen(PORT, () => {
             console.log(`✅ Production Hub Operational on Port ${PORT}`);
             console.log(`📡 Dashboard API: http://localhost:${PORT}/api`);
