@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchMe = async () => {
     try {
-      const { data } = await api.get('/auth/me');
+      const { data } = await api.get('/api/auth/me');
       setUser(data);
       localStorage.setItem('user', JSON.stringify(data));
       setIsAuthenticated(true);
@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       // Identity Handshake through Production Proxy
-      const { data } = await api.post('/auth/login', { email, password });
+      const { data } = await api.post('/api/auth/login', { email, password });
       
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));

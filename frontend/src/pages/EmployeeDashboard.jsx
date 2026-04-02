@@ -62,11 +62,11 @@ const EmployeeDashboard = () => {
     const fetchData = async () => {
         try {
             const [statusRes, statsRes, prodRes, leavesRes, attendanceRes] = await Promise.all([
-                api.get('/time/status'),
-                api.get('/time/stats'),
-                api.get('/time/productivity'),
-                api.get('/leave/my'),
-                api.get('/attendance/me')
+                api.get('/api/time/status'),
+                api.get('/api/time/stats'),
+                api.get('/api/time/productivity'),
+                api.get('/api/leave/my'),
+                api.get('/api/attendance/me')
             ]);
             setStatus(statusRes.data);
             setStats(statsRes.data);
@@ -103,7 +103,7 @@ const EmployeeDashboard = () => {
 
     const fetchAssignedProjects = async () => {
         try {
-            const { data } = await api.get('/projects');
+            const { data } = await api.get('/api/projects');
             setAssignedProjects(data);
         } catch (error) { console.error('Error fetching assigned projects', error); }
     };
@@ -156,7 +156,7 @@ const EmployeeDashboard = () => {
     const handleStartWork = async () => {
         try {
             setLoading(true);
-            await api.post('/attendance/checkin');
+            await api.post('/api/attendance/checkin');
             fetchData();
         } catch (error) { alert(error.response?.data?.message || 'Error starting work'); }
         finally { setLoading(false); }
@@ -165,7 +165,7 @@ const EmployeeDashboard = () => {
     const handleStopWork = async () => {
         try {
             setLoading(true);
-            await api.post('/attendance/checkout');
+            await api.post('/api/attendance/checkout');
             fetchData();
         } catch (error) { alert(error.response?.data?.message || 'Error stopping work'); }
         finally { setLoading(false); }
@@ -175,10 +175,10 @@ const EmployeeDashboard = () => {
         try {
             setLoading(true);
             if (status.onBreak) {
-                await api.post('/time/stop-break');
+                await api.post('/api/time/stop-break');
                 setStatus(prev => ({ ...prev, onBreak: false }));
             } else {
-                await api.post('/time/start-break', { type });
+                await api.post('/api/time/start-break', { type });
                 setStatus(prev => ({ ...prev, onBreak: true, breakType: type }));
             }
             fetchData();
@@ -189,7 +189,7 @@ const EmployeeDashboard = () => {
     const handleManualOverride = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/time/manual-override', override);
+            await api.post('/api/time/manual-override', override);
             setActiveModal(null);
             setOverride({ type: 'attendance', startTime: '', endTime: '', reason: '' });
             fetchData();
@@ -199,7 +199,7 @@ const EmployeeDashboard = () => {
     const handleLogMeeting = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/time/log-meeting', meetings);
+            await api.post('/api/time/log-meeting', meetings);
             setActiveModal(null);
             setMeetings({ title: '', duration: '', type: 'Internal' });
             fetchData();
@@ -209,7 +209,7 @@ const EmployeeDashboard = () => {
     const handleApplyLeave = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/leave/apply', leave);
+            await api.post('/api/leave/apply', leave);
             setActiveModal(null);
             setLeave({ startDate: '', endDate: '', reason: '' });
         } catch (error) { alert(error.response?.data?.error || error.response?.data?.message || 'Error applying leave'); }
@@ -217,7 +217,7 @@ const EmployeeDashboard = () => {
 
     const fetchWorkLogs = async () => {
         try {
-            const { data } = await api.get('/time/work-hours');
+            const { data } = await api.get('/api/time/work-hours');
             setWorkLogs(data);
             setActiveModal('workHours');
         } catch (error) { console.error(error); }

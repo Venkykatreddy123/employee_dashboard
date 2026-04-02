@@ -33,7 +33,7 @@ const BonusManagement = () => {
     e.preventDefault();
     try {
       console.log(`[BonusManagement] Issuing grant of $${formData.amount} to ID: ${formData.user_id}`);
-      await api.post('/bonuses', formData);
+      await api.post('/api/bonuses', formData);
       fetchData();
       setFormData({ user_id: '', amount: '', reason: '' });
       alert('Reward protocol synchronized successfully.');

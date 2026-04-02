@@ -12,8 +12,9 @@ const setupDatabase = async () => {
         const empTableInfo = await client.execute("PRAGMA table_info(employees)");
         const hasEmpId = empTableInfo.rows.some(r => r.name === 'emp_id');
         const hasPassword = empTableInfo.rows.some(r => r.name === 'password');
+        const hasManagerId = empTableInfo.rows.some(r => r.name === 'manager_id');
         
-        if (empTableInfo.rows.length > 0 && (!hasEmpId || !hasPassword)) {
+        if (empTableInfo.rows.length > 0 && (!hasEmpId || !hasPassword || !hasManagerId)) {
             console.log('🔄 Outdated Employee Schema detected. Migrating to full registry...');
             await client.execute("DROP TABLE employees");
         }
@@ -39,7 +40,9 @@ const setupDatabase = async () => {
                 department TEXT DEFAULT 'Engineering',
                 joining_date TEXT,
                 salary REAL DEFAULT 0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                manager_id TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (manager_id) REFERENCES employees(emp_id)
             )
         `);
 
@@ -164,6 +167,68 @@ const setupDatabase = async () => {
             )
         `);
 
+        // 10a. Active Sessions Registry (Required by Admin Dashboard)
+        await client.execute(`
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                start_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                end_time DATETIME,
+                device TEXT,
+                ip_address TEXT,
+                FOREIGN KEY (user_id) REFERENCES employees(emp_id) ON DELETE CASCADE
+            )
+        `);
+
+        // 10b. Organizational Hierarchy (Departments)
+        await client.execute(`
+            CREATE TABLE IF NOT EXISTS departments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE NOT NULL,
+                manager_id TEXT,
+                FOREIGN KEY (manager_id) REFERENCES employees(emp_id)
+            )
+        `);
+
+        // 10c. System Audit Registry (Audit Logs)
+        await client.execute(`
+            CREATE TABLE IF NOT EXISTS audit_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT,
+                action TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                ip_address TEXT,
+                details TEXT
+            )
+        `);
+
+        // 10d. Global Infrastructure Settings
+        await client.execute(`
+            CREATE TABLE IF NOT EXISTS settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT UNIQUE NOT NULL,
+                value TEXT NOT NULL
+            )
+        `);
+
+        // Seed initial settings if blank
+        const settingsCheck = await client.execute("SELECT COUNT(*) as count FROM settings");
+        if (settingsCheck.rows[0].count === 0) {
+            console.log('⚙️  Initializing Infrastructure Settings...');
+            const defaultSettings = [
+                ['SYSTEM_MODE', 'Production'],
+                ['MAINTENANCE_WINDOW', '02:00 - 04:00 UTC'],
+                ['CLOUD_REGION', 'AP-SOUTH-1'],
+                ['IDENTITY_PROTOCOL', 'JWT High-Integrity']
+            ];
+            for (const s of defaultSettings) {
+                await client.execute({
+                    sql: "INSERT INTO settings (key, value) VALUES (?, ?)",
+                    args: s
+                });
+            }
+        }
+
         // 11. Core Auth Registry (Users)
         await client.execute(`
             CREATE TABLE IF NOT EXISTS users (
@@ -174,7 +239,51 @@ const setupDatabase = async () => {
             )
         `);
 
-        // 12. Core Seeding Logic
+        // 12. Strategic Synchronization: [Autosync Triggers]
+        // This ensures the Identity Registry (Employees) and Auth Tier (Users) are ALWAYS synchronized.
+        console.log('⛓️  Forging Persistence Triggers [Identity ↔ Auth]...');
+        
+        // A. Insert Sync
+        await client.execute(`
+            CREATE TRIGGER IF NOT EXISTS sync_user_insert
+            AFTER INSERT ON employees
+            BEGIN
+                INSERT OR IGNORE INTO users (email, password, role)
+                VALUES (new.email, new.password, new.role);
+            END;
+        `);
+
+        // B. Update Sync
+        await client.execute(`
+            CREATE TRIGGER IF NOT EXISTS sync_user_update
+            AFTER UPDATE ON employees
+            BEGIN
+                UPDATE users 
+                SET email = new.email, 
+                    password = new.password, 
+                    role = new.role
+                WHERE email = old.email;
+            END;
+        `);
+
+        // C. Delete Sync
+        await client.execute(`
+            CREATE TRIGGER IF NOT EXISTS sync_user_delete
+            AFTER DELETE ON employees
+            BEGIN
+                DELETE FROM users WHERE email = old.email;
+            END;
+        `);
+
+        // 13. Data Integrity: Bulk Alignment
+        // Manually align existing records before triggers handle future flow
+        console.log('🔄 Aligning Legacy Identity Clusters...');
+        await client.execute(`
+            INSERT OR IGNORE INTO users (email, password, role)
+            SELECT email, password, role FROM employees
+        `);
+
+        // 14. Core Seeding Logic
         console.log('🌱 Checking Master Registry for core personnel...');
         const userCheck = await client.execute("SELECT COUNT(*) as count FROM employees");
         if (userCheck.rows[0].count === 0) {
@@ -186,28 +295,16 @@ const setupDatabase = async () => {
                 ["EMP004", "Alice Employee", "alice@empdash.com", "emp123", "Employee", "Design", "2024-03-01", 60000]
             ];
             for (const u of personnel) {
+                // We only insert into employees; triggers handle the rest
                 await client.execute({
                     sql: "INSERT INTO employees (emp_id, name, email, password, role, department, joining_date, salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     args: u
-                });
-                // Sync with auth table
-                await client.execute({
-                    sql: "INSERT OR IGNORE INTO users (email, password, role) VALUES (?, ?, ?)",
-                    args: [u[2], u[3], u[4]]
                 });
             }
 
             console.log('✅ Identity & Auth Registry Initialized.');
         } else {
-            // Also ensure users table is synchronized if employees exist but users might be new
-            console.log('✅ Personnel Registry active. Verifying auth sync...');
-            const existingEmp = await client.execute("SELECT email, password, role FROM employees");
-            for (const u of existingEmp.rows) {
-                await client.execute({
-                    sql: "INSERT OR IGNORE INTO users (email, password, role) VALUES (?, ?, ?)",
-                    args: [u.email, u.password, u.role]
-                });
-            }
+            console.log('✅ Personnel Registry active. Autosync active.');
         }
 
         console.log('✅ Final Cloud Schema Synchronized.');

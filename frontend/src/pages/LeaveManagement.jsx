@@ -46,7 +46,7 @@ const LeaveManagement = () => {
         reason: formData.reason
       };
 
-      await api.post('/leaves', submission);
+      await api.post('/api/leaves', submission);
       setShowApply(false);
       fetchLeaves();
       setFormData({ leave_type: 'Sick', start_date: '', end_date: '', reason: '' });

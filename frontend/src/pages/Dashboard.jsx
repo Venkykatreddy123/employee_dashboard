@@ -45,8 +45,8 @@ const Dashboard = () => {
       console.log(`📡 Synchronization Handshake: ${isAdmin ? 'Admin Global Registry' : 'Individual Load Registry'}`);
       
       const endpoint = isAdmin 
-        ? '/dashboard/admin' 
-        : `/dashboard/employee/${user.emp_id}`;
+        ? '/api/dashboard/admin' 
+        : `/api/dashboard/employee/${user.emp_id}`;
         
       const response = await api.get(endpoint);
       setStats(prev => ({
@@ -75,10 +75,10 @@ const Dashboard = () => {
         <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-primary-600 via-primary-300 to-primary-600 animate-pulse"></div>
         <div className="relative z-10">
           <h1 className="text-5xl font-black text-gray-900 tracking-tighter mb-2">Internal Portfolio</h1>
-          <p className="text-gray-400 font-bold uppercase tracking-[0.2em] text-[10px] flex items-center gap-3">
+          <div className="text-gray-400 font-bold uppercase tracking-[0.2em] text-[10px] flex items-center gap-3">
              <div className={`w-3 h-3 rounded-full ${isDegraded ? 'bg-amber-400' : 'bg-green-500 animate-pulse'}`}></div>
              Identity Authenticated: <span className="text-primary-600">{user.name}</span> • Role: <span className={isDegraded ? 'text-amber-600' : 'text-green-600'}>{user.role}</span>
-          </p>
+          </div>
         </div>
         <div className="flex gap-4 mt-8 md:mt-0 relative z-10">
           <button onClick={fetchStats} className="bg-gray-50 text-gray-400 p-5 rounded-3xl border border-gray-100 hover:bg-primary-50 hover:text-primary-600 transition-all shadow-inner"><RefreshCw size={28} className={loading ? 'animate-spin' : ''} /></button>

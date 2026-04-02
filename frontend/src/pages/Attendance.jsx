@@ -28,8 +28,8 @@ const Attendance = () => {
       const filtersToUse = isClear ? { date: '', employee: '' } : adminFilters;
 
       const [todayRes, historyRes] = await Promise.all([
-        api.get('/attendance/me'),
-        api.get('/attendance/history')
+        api.get('/api/attendance/me'),
+        api.get('/api/attendance/history')
       ]);
 
       console.log('📦 [Attendance] Today Pulse Logic:', todayRes.data);
@@ -50,7 +50,7 @@ const Attendance = () => {
         if (filtersToUse.employee) queryParams.append('emp_id', filtersToUse.employee);
         
         console.log('🛠️ [Attendance] Admin Telemetry Query:', queryParams.toString());
-        const allRes = await api.get(`/attendance/all?${queryParams.toString()}`);
+        const allRes = await api.get(`/api/attendance/all?${queryParams.toString()}`);
         console.log('📦 [Attendance] Global Personnel Data:', allRes.data);
         
         if (allRes.data.success) {
@@ -78,7 +78,7 @@ const Attendance = () => {
     try {
       console.log(`🚀 [Attendance] Triggering Lifecycle Action: ${action}`);
       setBtnLoading(true);
-      const endpoint = action === 'check-in' ? '/attendance/checkin' : '/attendance/checkout';
+      const endpoint = action === 'check-in' ? '/api/attendance/checkin' : '/api/attendance/checkout';
       const res = await api.post(endpoint);
       
       console.log('✅ [Attendance] Action Successful:', res.data);

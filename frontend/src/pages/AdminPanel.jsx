@@ -52,11 +52,11 @@ const AdminPanel = () => {
         try {
             setLoading(true);
             const [usersRes, logsRes, settingsRes, sessionsRes, deptsRes] = await Promise.all([
-                api.get('/admin/users'),
-                api.get('/admin/logs'),
-                api.get('/admin/settings'),
-                api.get('/admin/active-sessions'),
-                api.get('/departments')
+                api.get('/api/admin/users'),
+                api.get('/api/admin/logs'),
+                api.get('/api/admin/settings'),
+                api.get('/api/admin/active-sessions'),
+                api.get('/api/departments')
             ]);
             
             setUsers(Array.isArray(usersRes?.data) ? usersRes.data : []);
@@ -83,7 +83,7 @@ const AdminPanel = () => {
     const handleCreateUser = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/auth/register', newUser);
+            await api.post('/api/auth/register', newUser);
             setActiveModal(null);
             setNewUser({ name: '', email: '', password: '', role: 'Employee', department_id: departments[0]?.id || '' });
             fetchData();
@@ -93,21 +93,21 @@ const AdminPanel = () => {
     const handleDeleteUser = async (id) => {
         if (!window.confirm('Are you sure you want to delete this user?')) return;
         try {
-            await api.delete(`/admin/user/${id}`);
+            await api.delete(`/api/users/${id}`);
             fetchData();
         } catch (err) { alert(err.response?.data?.error || err.response?.data?.message || 'Failed to delete user') }
     };
 
     const handleUpdateRole = async (id, role) => {
         try {
-            await api.post('/admin/user-role', { id, role });
+            await api.post('/api/admin/user-role', { id, role });
             fetchData();
         } catch (err) { alert(err.response?.data?.error || err.response?.data?.message || 'Failed to update role') }
     };
 
     const handleUpdateSetting = async (key, value) => {
         try {
-            await api.post('/admin/settings', { key, value });
+            await api.post('/api/admin/settings', { key, value });
             fetchData();
         } catch (err) { alert(err.response?.data?.error || err.response?.data?.message || 'Failed to update setting') }
     };
@@ -115,7 +115,7 @@ const AdminPanel = () => {
     const handleBackup = async () => {
         try {
             setBackingUp(true);
-            const { data } = await api.post('/admin/backup');
+            const { data } = await api.post('/api/admin/backup');
             alert(data.message);
         } catch (err) { alert(err.response?.data?.error || err.response?.data?.message || 'Backup failed') }
         finally { setBackingUp(false); }
@@ -124,7 +124,7 @@ const AdminPanel = () => {
     const handleCreateDept = async (e) => {
         e.preventDefault();
         try {
-            await api.post('/departments', { name: newDeptName });
+            await api.post('/api/departments', { name: newDeptName });
             setNewDeptName('');
             setActiveModal(null);
             fetchData();
@@ -134,7 +134,7 @@ const AdminPanel = () => {
     const handleUpdateDept = async (e) => {
         e.preventDefault();
         try {
-            await api.put(`/departments/${deptToEdit.id}`, { name: deptToEdit.name });
+            await api.put(`/api/departments/${deptToEdit.id}`, { name: deptToEdit.name });
             setDeptToEdit(null);
             setActiveModal(null);
             fetchData();
@@ -144,7 +144,7 @@ const AdminPanel = () => {
     const handleDeleteDept = async (id) => {
         if (!window.confirm('Are you sure you want to delete this department?')) return;
         try {
-            await api.delete(`/departments/${id}`);
+            await api.delete(`/api/departments/${id}`);
             fetchData();
         } catch (err) { alert(err.response?.data?.error || err.response?.data?.message || 'Failed to delete department') }
     };

@@ -20,7 +20,7 @@ const BreakTracker = () => {
         : `/breaks?role=${user.role}&user_id=${user.id}`;
       const [breakRes, userRes] = await Promise.all([
         api.get(breakUrl),
-        user.role !== 'employee' ? api.get('/users') : Promise.resolve({ data: [] })
+        user.role !== 'employee' ? api.get('/api/users') : Promise.resolve({ data: [] })
       ]);
       setBreaks(breakRes.data);
       if (user.role !== 'employee') setEmployees(userRes.data);

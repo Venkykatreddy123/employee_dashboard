@@ -8,6 +8,20 @@ const localUrl = 'file:local.db';
 let activeDriver;
 
 const initializeDriver = (url, token) => {
+    // 🚀 Enterprise Autosync Configuration
+    // If we have a cloud URL, we initialize a local-first replica 
+    // that background-syncs with the master cloud node.
+    if (url.startsWith('libsql://') || url.startsWith('https://')) {
+        console.log('📡 [Driver] Initializing Cloud-Local Sync Replica...');
+        return createClient({
+            url: 'file:enterprise_sync.db',
+            syncUrl: url,
+            authToken: token || '',
+            syncInterval: 60, // Background sync every 60 seconds
+        });
+    }
+    
+    // Standard driver initialization
     return createClient({
         url: url,
         authToken: token || '',
@@ -26,6 +40,13 @@ const connectDB = async (retries = 3) => {
             const result = await activeDriver.execute('SELECT 1 as probe');
             if (result.rows.length > 0) {
                 console.log('✅ Turso Persistence Tier: SYNCHRONIZED');
+                
+                // Initial background sync to prime the local replica
+                if (activeDriver.sync) {
+                    console.log('📡 [Driver] Priming Local Identity Clones...');
+                    await activeDriver.sync();
+                }
+                
                 return true;
             }
         } catch (error) {
@@ -78,4 +99,11 @@ const client = new Proxy({}, {
     }
 });
 
-module.exports = { client, connectDB };
+/**
+ * executeQuery - Convenience function for standard SQL operations
+ */
+const executeQuery = async (sql, args = []) => {
+    return await client.execute({ sql, args });
+};
+
+module.exports = { client, connectDB, executeQuery };

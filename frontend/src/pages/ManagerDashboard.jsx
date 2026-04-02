@@ -58,10 +58,10 @@ const ManagerDashboard = () => {
     const fetchData = async () => {
         try {
             const [teamRes, leavesRes, metricsRes, teamLeavesRes] = await Promise.all([
-                api.get('/admin/users'),
-                api.get('/leave/all-pending'),
-                api.get('/admin/metrics'),
-                api.get('/leave/team')
+                api.get('/api/admin/users'),
+                api.get('/api/leave/all-pending'),
+                api.get('/api/admin/metrics'),
+                api.get('/api/leave/team')
             ]);
             setTeam(teamRes.data.filter(u => u.role === 'employee' || u.role === 'manager'));
             setLeaves(leavesRes.data);
@@ -74,7 +74,7 @@ const ManagerDashboard = () => {
 
     const fetchProjects = async () => {
         try {
-            const { data } = await api.get('/projects');
+            const { data } = await api.get('/api/projects');
             setProjects(data);
         } catch (err) { console.error(err); }
     };
@@ -85,7 +85,7 @@ const ManagerDashboard = () => {
 
     const handleLeaveAction = async (id, status) => {
         try {
-            await api.post('/leave/update-status', { id, status });
+            await api.post('/api/leave/update-status', { id, status });
             setLeaves(prev => prev.filter(l => l.id !== id));
             fetchData();
         } catch (err) { alert(err.response?.data?.error || err.response?.data?.message || 'Failed to update leave') }
@@ -107,7 +107,7 @@ const ManagerDashboard = () => {
         e.preventDefault();
         try {
             setProjectLoading(true);
-            await api.post('/projects', newProject);
+            await api.post('/api/projects', newProject);
             setNewProject({ name: '', description: '', deadline: '' });
             fetchProjects();
         } catch (err) { alert(err.response?.data?.error || 'Failed to create project'); }
@@ -118,7 +118,7 @@ const ManagerDashboard = () => {
         e.preventDefault();
         try {
             setProjectLoading(true);
-            await api.post('/projects/assign', assignment);
+            await api.post('/api/projects/assign', assignment);
             setAssignment({ project_id: '', employee_id: '' });
             fetchProjects();
         } catch (err) { alert(err.response?.data?.error || 'Failed to assign project'); }

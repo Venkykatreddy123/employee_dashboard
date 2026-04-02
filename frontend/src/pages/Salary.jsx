@@ -29,11 +29,11 @@ const Salary = () => {
       setLoading(true);
       console.log(`📡 Synchronization Handshake: ${user.emp_id} Financial Registry`);
       
-      const res = await api.get(`/salary/${user.emp_id}`);
+      const res = await api.get(`/api/salary/${user.emp_id}`);
       setSalaries(res.data.success ? res.data.data : []);
       
       if (isAdminOrHR) {
-        const empRes = await api.get('/employees');
+        const empRes = await api.get('/api/employees');
         setEmployees(empRes.data);
       }
       setLoading(false);
@@ -51,7 +51,7 @@ const Salary = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/salary', formData);
+      await api.post('/api/salary', formData);
       toast.success('Financial Record Persisted');
       setIsModalOpen(false);
       fetchData();
@@ -64,7 +64,7 @@ const Salary = () => {
    * handleDownload - Secure PDF acquisition via Authorization Handshake
    */
   const handleDownload = async (salary) => {
-    const payslipUrl = `/salary/${salary.emp_id}/payslip/${salary.month}-${salary.year}`;
+    const payslipUrl = `/api/salary/${salary.emp_id}/payslip/${salary.month}-${salary.year}`;
     toast.success(`Acquiring Production Payslip: ${salary.month} ${salary.year}`);
     
     try {

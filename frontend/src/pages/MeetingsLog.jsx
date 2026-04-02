@@ -27,7 +27,7 @@ const MeetingsLog = () => {
     try {
       setLoading(true);
       console.log('📡 [Meetings] Synchronizing with Cloud Registry...');
-      const response = await api.get('/meetings');
+      const response = await api.get('/api/meetings');
       
       if (response.data.success) {
         setMeetings(response.data.data);
@@ -71,10 +71,10 @@ const MeetingsLog = () => {
     e.preventDefault();
     try {
       if (editingMeeting) {
-        await api.put(`/meetings/${editingMeeting}`, { ...formData, user_id: user.emp_id });
+        await api.put(`/api/meetings/${editingMeeting}`, { ...formData, user_id: user.emp_id });
         toast.success('Engagement Session Synchronized');
       } else {
-        await api.post('/meetings', { ...formData, user_id: user.emp_id });
+        await api.post('/api/meetings', { ...formData, user_id: user.emp_id });
         toast.success('New Productivity Session Persisted');
       }
       setShowModal(false);
@@ -87,7 +87,7 @@ const MeetingsLog = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Decommission this meeting record? This action is irreversible.')) {
       try {
-        await api.delete(`/meetings/${id}`);
+        await api.delete(`/api/meetings/${id}`);
         toast.success('Record Successfully Purged');
         fetchMeetings();
       } catch (err) {

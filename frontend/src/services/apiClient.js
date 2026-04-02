@@ -1,8 +1,7 @@
-// Frontend ↔ Turso Backend Integration (Fetch Proxy Client)
-// Using relative URLs to leverage the Vite proxy (5173 -> 5000)
-const BASE = ''; 
-const API_BASE = '/api';
-const AUTH_BASE = '/api/auth';
+const API_URL = import.meta.env.VITE_API_URL || '';
+const BASE = API_URL; 
+const API_BASE = `${API_URL}/api`;
+const AUTH_BASE = `${API_URL}/api/auth`;
 
 console.log(`📡 [Fetch Client] Base Proxy URL: ${API_BASE}`);
 

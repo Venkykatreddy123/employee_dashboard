@@ -31,7 +31,7 @@ const Leaves = () => {
       setMyLeaves(myRes.data.success ? myRes.data.data : []);
       
       if (isAdminOrHR) {
-        const response = await api.get('/leaves/all');
+        const response = await api.get('/api/leaves/all');
         setLeaves(response.data.success ? response.data.data : []);
       }
       setLoading(false);
@@ -50,7 +50,7 @@ const Leaves = () => {
     e.preventDefault();
     if (!user?.emp_id) return;
     try {
-      await api.post('/leaves/request', { ...formData, emp_id: user.emp_id });
+      await api.post('/api/leaves/request', { ...formData, emp_id: user.emp_id });
       toast.success('Lifecycle Request Persisted');
       setIsModalOpen(false);
       setFormData({ leave_type: 'Sick Leave', start_date: '', end_date: '', reason: '' });

@@ -22,7 +22,7 @@ const LeaveTracker = () => {
 
     const fetchLeaves = async () => {
         try {
-            const { data } = await api.get('/leave/my');
+            const { data } = await api.get('/api/leave/my');
             setLeaves(data);
         } catch (error) {
             console.error('Error fetching leaves', error);
@@ -37,7 +37,7 @@ const LeaveTracker = () => {
         e.preventDefault();
         try {
             setLoading(true);
-            await api.post('/leave/apply', leaveForm);
+            await api.post('/api/leave/apply', leaveForm);
             setShowApplyModal(false);
             setLeaveForm({ startDate: '', endDate: '', reason: '' });
             fetchLeaves();

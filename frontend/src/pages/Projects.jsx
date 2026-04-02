@@ -38,15 +38,15 @@ const Projects = () => {
       console.log(`📡 Synchronization Handshake: ${isAdmin ? 'Global Portfolio' : 'Assigned Infrastructure'}`);
       
       const endpoint = isAdmin 
-        ? '/projects' 
-        : `/projects/employee/${user.emp_id}`;
+        ? '/api/projects' 
+        : `/api/projects/employee/${user.emp_id}`;
         
       const response = await api.get(endpoint);
       setProjects(Array.isArray(response.data) ? response.data : []);
       
       // Only fetch personnel registry if Admin/Manager
       if (isAdmin) {
-          const empRes = await api.get('/employees');
+          const empRes = await api.get('/api/employees');
           setEmployees(Array.isArray(empRes.data) ? empRes.data : []);
       }
       
@@ -106,10 +106,10 @@ const Projects = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        await api.put(`/projects/${editingId}`, formData);
+        await api.put(`/api/projects/${editingId}`, formData);
         toast.success('Strategy Synchronized on Turso');
       } else {
-        await api.post('/projects', formData);
+        await api.post('/api/projects', formData);
         toast.success('Infrastructure Profile Persisted');
       }
       setIsModalOpen(false);
@@ -122,7 +122,7 @@ const Projects = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure?')) {
       try {
-        await api.delete(`/projects/${id}`);
+        await api.delete(`/api/projects/${id}`);
         toast.success('Infrastructure Erased');
         fetchData();
       } catch (err) {

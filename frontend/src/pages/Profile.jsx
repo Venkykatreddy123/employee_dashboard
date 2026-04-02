@@ -40,7 +40,7 @@ const Profile = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await api.put('/auth/me', formData);
+      await api.put('/api/auth/me', formData);
       toast.success('Identity updated successfully');
       fetchMe();
     } catch (err) {

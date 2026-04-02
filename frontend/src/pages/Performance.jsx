@@ -29,7 +29,7 @@ const Performance = () => {
       setPerformance(perfRes.data.success ? perfRes.data.data : []);
       
       if (isAdminOrManager) {
-        const empRes = await api.get('/employees');
+        const empRes = await api.get('/api/employees');
         setEmployees(empRes.data);
       }
       setLoading(false);
@@ -47,7 +47,7 @@ const Performance = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/performance', formData);
+      await api.post('/api/performance', formData);
       toast.success('Performance Review Persisted');
       setIsModalOpen(false);
       fetchData();

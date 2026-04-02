@@ -25,20 +25,16 @@ const breakRoutes = require('./routes/breakRoutes');
 const bonusRoutes = require('./routes/bonusRoutes');
 const meetingRoutes = require('./routes/meetingRoutes');
 const userRoutes = require('./routes/userRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const managerRoutes = require('./routes/managerRoutes');
+const tursoRoutes = require('./routes/tursoRoutes');
+const departmentRoutes = require('./routes/departmentRoutes');
 
 const app = express();
 
 // 3. Middlewares: Production Hardening
 app.use(cors({
-  origin: [
-    process.env.CORS_ORIGIN,
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://emp-dash-seven.vercel.app',
-    'capacitor://localhost',
-    'http://localhost'
-  ].filter(Boolean),
-  credentials: true
+  origin: '*'
 }));
 
 app.use(express.json());
@@ -48,13 +44,10 @@ app.use(morgan('📡 [:method] :url -> Status: :status (:response-time ms)'));
 // 4. API Request Auditing for Cloud Debugging
 app.use((req, res, next) => {
   console.log(`[CLOUD TRACE] ${new Date().toISOString()} | ${req.method} ${req.url}`);
-  if (req.method === 'POST') console.log('REQ BODY:', req.body);
   next();
 });
 
 // 5. Health Handshake
-app.get('/', (req,res)=>res.send('API working'))
-
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: "ok", 
@@ -78,8 +71,12 @@ app.use('/api/breaks', breakRoutes);
 app.use('/api/bonus', bonusRoutes);
 app.use('/api/meetings', meetingRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/manager', managerRoutes);
+app.use('/api/turso', tursoRoutes);
+app.use('/api/departments', departmentRoutes);
 
-app.get('/api', (req, res) => res.json({ 
+app.get('/', (req, res) => res.json({ 
     success: true, 
     message: 'Admin-Employee Dashboard Backend API Operational',
     status: 'Cloud Ready',
@@ -111,7 +108,7 @@ const startServer = async () => {
         console.log('✅ Final Hub Schema Synchronized.');
 
         // Dynamic Port Binding for Render Excellence
-        const PORT = process.env.PORT || 10000; 
+        const PORT = process.env.PORT || 5000; 
         app.listen(PORT, () => {
             console.log(`✅ Production Hub Operational on Port ${PORT}`);
             console.log(`📡 Dashboard API: http://localhost:${PORT}/api`);

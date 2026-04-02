@@ -33,7 +33,7 @@ const Employees = () => {
       setSyncError(null);
       console.log('📡 Syncing Personnel Registry [Attempt:', retryCount + 1, ']');
       
-      const response = await api.get('/employees');
+      const response = await api.get('/api/employees');
       setEmployees(Array.isArray(response.data) ? response.data : []);
       setLoading(false);
       setRetryCount(0); // Reset on success
@@ -88,10 +88,10 @@ const Employees = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        await api.put(`/employees/${editingId}`, formData);
+        await api.put(`/api/employees/${editingId}`, formData);
         toast.success('Personnel Record Synchronized');
       } else {
-        await api.post('/employees', formData);
+        await api.post('/api/employees', formData);
         toast.success('New Personnel Persisted on Turso');
       }
       setIsModalOpen(false);
@@ -104,7 +104,7 @@ const Employees = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure? This will remove the record globally.')) {
       try {
-        await api.delete(`/employees/${id}`);
+        await api.delete(`/api/employees/${id}`);
         toast.success('Record Successfully Decommissioned');
         fetchEmployees();
       } catch (err) {

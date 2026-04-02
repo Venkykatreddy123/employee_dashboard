@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken, authorizeRoles } = require('../middleware/authMiddleware');
+const { authMiddleware, authorize } = require('../middleware/authMiddleware');
 const { getTeam, getTeamData, approveLeave, rejectLeave, getUserProfile } = require('../controllers/managerController');
 
 // All manager routes require authentication & Manager+ role
-router.use(verifyToken);
-router.use(authorizeRoles('Manager', 'Admin')); // Admins inherently have manager rights
+router.use(authMiddleware);
+router.use(authorize(['Manager', 'Admin'])); // Admins inherently have manager rights
 
 // Team Details
 router.get('/team', getTeam);
