@@ -10,12 +10,20 @@ import {
   Award,
   Wallet,
   Clock,
-  Video
+  Video,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, closeSidebar }) => {
   const { user, logout } = useAuth();
+  
+  const handleLinkClick = () => {
+    // 📱 Auto close on mobile after click (Target Goal 5)
+    if (window.innerWidth < 768) {
+      closeSidebar();
+    }
+  };
   
   const links = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard', roles: ['Admin', 'Manager', 'HR', 'Employee'] },
@@ -32,42 +40,54 @@ const Sidebar = () => {
   const filteredLinks = links.filter(link => link.roles.includes(user.role));
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
-      <div className="p-6 border-b border-gray-100 flex items-center gap-3">
-        <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-200">
-          <span className="text-white font-bold text-xl">E</span>
+    <>
+      <aside className={`
+        fixed md:sticky top-0 left-0 z-50 h-screen bg-white border-r border-gray-200 flex flex-col 
+        transition-transform duration-300 transform w-64
+        ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-200">
+               <span className="text-white font-bold text-xl">E</span>
+             </div>
+             <span className="font-bold text-gray-900 text-lg tracking-tight">EmpDash</span>
+          </div>
+          <button onClick={closeSidebar} className="md:hidden text-gray-400 hover:text-gray-600">
+             <X size={24} />
+          </button>
         </div>
-        <span className="font-bold text-gray-900 text-lg tracking-tight">EmpDash</span>
-      </div>
-      
-      <nav className="flex-1 p-4 space-y-1">
-        {filteredLinks.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            className={({ isActive }) => `
-              flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors
-              ${isActive 
-                ? 'bg-primary-50 text-primary-700' 
-                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
-            `}
+        
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {filteredLinks.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              onClick={handleLinkClick}
+              className={({ isActive }) => `
+                flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors
+                ${isActive 
+                  ? 'bg-primary-50 text-primary-700' 
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}
+              `}
+            >
+              <link.icon size={20} />
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+        
+        <div className="p-4 border-t border-gray-100">
+          <button
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
           >
-            <link.icon size={20} />
-            {link.label}
-          </NavLink>
-        ))}
-      </nav>
-      
-      <div className="p-4 border-t border-gray-100">
-        <button
-          onClick={logout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-        >
-          <LogOut size={20} />
-          Sign Out
-        </button>
-      </div>
-    </aside>
+            <LogOut size={20} />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+    </>
   );
 };
 
