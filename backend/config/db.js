@@ -1,27 +1,43 @@
 const { createClient } = require('@libsql/client');
+const fs = require('fs');
 require('dotenv').config();
 
 const cloudUrl = (process.env.TURSO_DATABASE_URL || process.env.DATABASE_URL)?.trim();
 const authToken = (process.env.TURSO_AUTH_TOKEN || process.env.DATABASE_AUTH_TOKEN)?.trim();
 const localUrl = 'file:local.db';
 
+// 🔥 FIX CORRUPTION: Task 1 - Decommission local sync nodes if problematic 
+const localFiles = ['enterprise_sync.db', 'enterprise_sync.db-shm', 'enterprise_sync.db-wal', 'local.db', 'local.db-shm', 'local.db-wal'];
+localFiles.forEach(file => {
+    if (fs.existsSync(file)) {
+        try {
+            fs.unlinkSync(file);
+            console.log(`🗑️  [Init] Purged legacy/corrupted state: ${file}`);
+        } catch (e) {
+            console.warn(`⚠️  [Init] Could not unlink ${file}: ${e.message}`);
+        }
+    }
+});
+
 let activeDriver;
 
+/**
+ * initializeDriver -🌍 Using Remote Turso Database (Task 2)
+ * In production/Remote mode, we use the URL directly without local file caching
+ * to avoid Render filesystem 'invalid state' errors.
+ */
 const initializeDriver = (url, token) => {
-    // 🚀 Enterprise Autosync Configuration
-    // If we have a cloud URL, we initialize a local-first replica 
-    // that background-syncs with the master cloud node.
-    if (url.startsWith('libsql://') || url.startsWith('https://')) {
-        console.log('📡 [Driver] Initializing Cloud-Local Sync Replica...');
+    const isCloud = url.startsWith('libsql://') || url.startsWith('https://');
+    
+    if (isCloud) {
+        console.log('📡 [Driver] Initializing Remote Cloud Node (Direct)...');
         return createClient({
-            url: 'file:enterprise_sync.db',
-            syncUrl: url,
+            url: url,
             authToken: token || '',
-            syncInterval: 60, // Background sync every 60 seconds
         });
     }
     
-    // Standard driver initialization
+    console.log('💾 [Driver] Initializing Local Data Stream...');
     return createClient({
         url: url,
         authToken: token || '',

@@ -76,12 +76,7 @@ app.use('/api/manager', managerRoutes);
 app.use('/api/turso', tursoRoutes);
 app.use('/api/departments', departmentRoutes);
 
-app.get('/', (req, res) => res.json({ 
-    success: true, 
-    message: 'Admin-Employee Dashboard Backend API Operational',
-    status: 'Cloud Ready',
-    prefix: '/api'
-}));
+app.get('/', (req, res) => res.send('API running'));
 
 // 7. Topology Catch-all
 app.use((req, res) => {
@@ -92,41 +87,47 @@ app.use((req, res) => {
 });
 
 // 8. Lifecycle Bootstrap
+/**
+ * startServer - Task 4/5 - Robust Startup Logic
+ * Ensures the node process survives even if Turkso connectivity oscillates.
+ */
 const startServer = async () => {
+    // Dynamic Port Binding for Render Excellence
+    const PORT = process.env.PORT || 5000;
+    
+    const server = app.listen(PORT, () => {
+        console.log(`✅ Production Hub Operational on Port ${PORT}`);
+        console.log(`📡 Dashboard API: http://localhost:${PORT}/api`);
+        console.log(`📋 Health Check: http://localhost:${PORT}/api/health\n`);
+    });
+
+    server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+            console.error(`🔥 PORT ${PORT} OCCUPIED: Shutdown conflicting nodes.`);
+            process.exit(1);
+        } else {
+            console.error('🔥 BOOT ERROR:', err.message);
+            process.exit(1);
+        }
+    });
+
     try {
         console.log('🚀 Initializing Enterprise Backend Logic...');
         
         // Database Handshake
         const isDBReady = await connectDB(3);
-        if (!isDBReady) {
-            console.error('❌ Cloud Connection Terminal Error: Sync aborted.');
-            process.exit(1);
+        if (isDBReady) {
+            // Task 5: Database execution error handling is wrapped in setupDatabase and client proxy
+            await setupDatabase();
+            console.log('✅ Final Hub Schema Synchronized.');
+        } else {
+            console.warn('⚠️  Cloud Connection Warning: Database offline. API functionality will be limited.');
         }
-        
-        // Sync Logic Schema
-        await setupDatabase();
-        console.log('✅ Final Hub Schema Synchronized.');
-
-        // Dynamic Port Binding for Render Excellence
-        const PORT = process.env.PORT || 5000; 
-        app.listen(PORT, () => {
-            console.log(`✅ Production Hub Operational on Port ${PORT}`);
-            console.log(`📡 Dashboard API: http://localhost:${PORT}/api`);
-            console.log(`📋 Health: http://localhost:${PORT}/api/health\n`);
-        }).on('error', (err) => {
-            if (err.code === 'EADDRINUSE') {
-                console.error(`🔥 PORT ${PORT} OCCUPIED: Shutdown conflicting nodes.`);
-                process.exit(1);
-            } else {
-                console.error('🔥 BOOT ERROR:', err.message);
-                process.exit(1);
-            }
-        });
 
     } catch (criticalErr) {
-        console.error('🔥 HUB CRITICAL FAILURE:');
-        console.error(criticalErr.stack);
-        process.exit(1);
+        console.error('🔥 HUB STARTUP LOGIC FAILURE [Non-Fatal]:');
+        console.error(criticalErr.message);
+        // We don't exit here so Render can at least hit the health check
     }
 };
 
