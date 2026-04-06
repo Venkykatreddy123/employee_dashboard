@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { TrendingUp } from 'lucide-react';
 import EmployeeDashboard from '@/features/employee/pages/EmployeeDashboard';
@@ -6,18 +7,39 @@ import AdminDashboard from '@/features/admin/pages/AdminDashboard';
 import ManagerDashboard from '@/features/manager/pages/ManagerDashboard';
 import ProductivityTable from '@/features/manager/components/ProductivityTable';
 
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleExport = () => {
-    const headers = "ID,Name,Role,Email\n";
-    const rows = "1,Admin User,Admin,admin@company.com\n2,Manager User,Manager,manager@company.com\n3,Employee User,Employee,employee@company.com";
-    const blob = new Blob([headers + rows], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'emp_intelligence_report.csv';
-    a.click();
+    const doc = new jsPDF();
+    doc.setFontSize(22);
+    doc.setTextColor(79, 70, 229);
+    doc.text("Executive Intelligence Report", 14, 22);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Requester: ${user.name} (${user.role})`, 14, 32);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 38);
+
+    const tableData = [
+      ["1", "Admin User", "Admin", "admin@company.com"],
+      ["2", "Manager User", "Manager", "manager@company.com"],
+      ["3", "Employee User", "Employee", "employee@company.com"]
+    ];
+
+    autoTable(doc, {
+        startY: 45,
+        head: [["ID", "Name", "Role", "Email"]],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [79, 70, 229] },
+    });
+
+    doc.save('EMP_Intelligence_Report.pdf');
   };
 
   const handleRefresh = () => {
@@ -37,7 +59,7 @@ const Dashboard = () => {
           </div>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
              <button className="btn btn-outline" onClick={handleExport}>
-               <TrendingUp size={16} /> Export Intelligence
+               <TrendingUp size={16} /> Export PDF Intelligence
              </button>
              <button className="btn btn-primary" onClick={handleRefresh}>Refresh Streams</button>
           </div>

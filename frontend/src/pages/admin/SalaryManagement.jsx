@@ -97,7 +97,7 @@ const SalaryManagement = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button className="btn btn-outline" onClick={handleGenerateAll}>
-                        <Download size={18} /> Generate Monthly Payslips
+                        <Download size={18} /> Generate All PDF Payslips
                     </button>
                     <button className="btn btn-primary" onClick={() => setIsModalOpen(true)}>
                         <Plus size={18} /> Add Salary Record

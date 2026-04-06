@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, Users, Calendar, ArrowUpRight } from 'lucide-react';
 import { getTeamData } from '@/services/usersService';
 import { useAuth } from '@/context/AuthContext';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const ProductivityReports = () => {
     const { user } = useAuth();
@@ -12,6 +14,35 @@ const ProductivityReports = () => {
         completedProjects: 0
     });
     const [members, setMembers] = useState([]);
+
+    const exportToPDF = () => {
+        const doc = new jsPDF();
+        doc.setFontSize(20);
+        doc.setTextColor(79, 70, 229);
+        doc.text("Team Productivity Report", 14, 22);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Organization: EMP Logic Research`, 14, 30);
+        doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, 35);
+        doc.text(`Avg. Productivity: ${teamStats.avgProductivity}`, 14, 40);
+
+        const tableData = members.map(m => [
+            m.name,
+            `${m.score}%`,
+            m.trend === 'up' ? 'Positive' : 'Stable'
+        ]);
+
+        autoTable(doc, {
+            startY: 50,
+            head: [["Member", "Score", "Trend"]],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [79, 70, 229] },
+        });
+
+        doc.save(`Team_Productivity_${new Date().toISOString().slice(0, 10)}.pdf`);
+    };
 
     useEffect(() => {
         const fetchTeamData = async () => {
@@ -50,7 +81,7 @@ const ProductivityReports = () => {
                 </div>
                 <div style={{ display: 'flex', gap: '0.75rem' }}>
                     <button className="btn btn-outline"><Calendar size={16} /> Last 7 Days</button>
-                    <button className="btn btn-primary" onClick={() => alert('Generating productivity report CSV...')}>Export CSV</button>
+                    <button className="btn btn-primary" onClick={exportToPDF}>Export PDF Report</button>
                 </div>
             </header>
 

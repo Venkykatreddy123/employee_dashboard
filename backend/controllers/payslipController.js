@@ -92,7 +92,7 @@ const getTeamPayslips = async (req, res) => {
 
 
 /**
- * Generate and download PDF for a specific payslip (GET /api/payslips/:id/download)
+ * Generate and download professional PDF for a specific payslip (GET /api/payslips/:id/download)
  */
 const downloadPayslipPDF = async (req, res) => {
   try {
@@ -102,125 +102,180 @@ const downloadPayslipPDF = async (req, res) => {
 
     // Fetch payslip details and user details
     const result = await executeQuery(`
-      SELECT P.*, U.name, U.email, U.department, U.role, U.designation
+      SELECT P.*, U.name, U.email, U.department, U.role as userRole, U.designation, U.managerId
       FROM PAYSLIPS P
       JOIN USERS U ON P.userId = U.id
       WHERE P.id = ?
     `, [id]);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Payslip not found' });
+      return res.status(404).json({ success: false, message: 'Payslip record not found' });
     }
 
     const payslip = result.rows[0];
 
-    // Security check: Only the employee themselves, their manager, or an admin can download
-    if (role !== 'Admin' && payslip.userId !== userId) {
-        // Check if it's manager
-        const managerCheck = await executeQuery('SELECT id FROM USERS WHERE id = ? AND managerId = ?', [payslip.userId, userId]);
-        if (managerCheck.rows.length === 0) {
-            return res.status(403).json({ success: false, message: 'Unauthorized' });
+    // RBAC: Admin can download all, Manager can download team, Employee only own
+    if (role !== 'Admin') {
+        if (role === 'Manager') {
+            // Check if employee belongs to manager's team
+            if (payslip.managerId !== userId && payslip.userId !== userId) {
+                return res.status(403).json({ success: false, message: 'Access denied: You can only download payslips for your team members.' });
+            }
+        } else if (role === 'Employee') {
+            if (payslip.userId !== userId) {
+                return res.status(403).json({ success: false, message: 'Access denied: You can only download your own payslips.' });
+            }
+        } else {
+            return res.status(403).json({ success: false, message: 'Unauthorized role' });
         }
     }
 
-    // Define filename
-    const filename = `Payslip_${payslip.name.replace(/\s+/g, '_')}_${payslip.month}_${payslip.year}.pdf`;
+    // Calculations
+    const totalEarnings = payslip.baseSalary + (payslip.bonus || 0) + (payslip.allowances || 0);
+    const totalDeductions = payslip.deductions || 0;
+    const netSalary = payslip.netSalary || (totalEarnings - totalDeductions);
+
+    // File Naming Format: EmployeeName_Month_Year_Payslip.pdf
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const monthIndex = parseInt(payslip.month, 10) - 1;
+    const monthName = monthNames[monthIndex] || payslip.month;
+    
+    const safeName = payslip.name.replace(/\s+/g, '_');
+    const filename = `${safeName}_${monthName}_${payslip.year}_Payslip.pdf`;
 
     // Create PDF
     const doc = new PDFDocument({ 
         size: 'A4',
-        margin: 50,
-        info: { Title: filename, Author: 'EMP Logic HR' }
+        margin: 50
     });
     
-    // Set headers for download
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    // Response headers
     res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     doc.pipe(res);
 
+    // --- PDF DESIGN ---
 
-    // Header Background Header
-    doc.fillColor('#f8fafc').rect(0, 0, doc.page.width, 140).fill();
-
-    // Company Brand
-    doc.fillColor('#4f46e5').fontSize(26).font('Helvetica-Bold').text('EMP LOGIC', 50, 40);
-    doc.fillColor('#64748b').fontSize(10).font('Helvetica').text('ENTERPRISE MANAGEMENT PLATFORM', 50, 70);
+    // 1. HEADER
+    doc.fillColor('#4f46e5').fontSize(24).font('Helvetica-Bold').text('EMP LOGIC', { align: 'center' });
+    doc.fillColor('#334155').fontSize(16).text('Employee Salary Payslip', { align: 'center' });
+    doc.fontSize(12).text(`${monthName} ${payslip.year}`, { align: 'center' });
+    doc.moveDown(1.5);
     
-    doc.fillColor('#1e293b').fontSize(14).font('Helvetica-Bold').text('PAYROLL STATEMENT', 350, 45, { align: 'right' });
-    doc.fontSize(10).font('Helvetica').text(`Period: ${payslip.month} ${payslip.year}`, 350, 65, { align: 'right' });
-    doc.text(`Generated On: ${new Date(payslip.generatedAt).toLocaleDateString()}`, 350, 80, { align: 'right' });
+    doc.strokeColor('#e2e8f0').lineWidth(1).moveTo(50, doc.y).lineTo(545, doc.y).stroke();
+    doc.moveDown(1.5);
 
-    doc.moveDown(5);
-    let currentY = 160;
+    // 2. EMPLOYEE DETAILS
+    doc.fillColor('#1e293b').fontSize(12).font('Helvetica-Bold').text('EMPLOYEE DETAILS');
+    doc.moveDown(0.5);
+    
+    const detailsTop = doc.y;
+    doc.fontSize(10).font('Helvetica-Bold').text('Employee Name:', 50, detailsTop);
+    doc.font('Helvetica').text(payslip.name, 150, detailsTop);
+    
+    doc.font('Helvetica-Bold').text('Employee ID:', 300, detailsTop);
+    doc.font('Helvetica').text(`EMP-${payslip.userId.toString().padStart(3, '0')}`, 400, detailsTop);
+    
+    const secondRowTop = detailsTop + 20;
+    doc.font('Helvetica-Bold').text('Department:', 50, secondRowTop);
+    doc.font('Helvetica').text(payslip.department || 'Engineering', 150, secondRowTop);
+    
+    doc.font('Helvetica-Bold').text('Designation:', 300, secondRowTop);
+    doc.font('Helvetica').text(payslip.designation || 'Developer', 400, secondRowTop);
+    
+    doc.moveDown(2);
 
-    // Divider
-    doc.strokeColor('#e2e8f0').lineWidth(0.5).moveTo(50, currentY).lineTo(550, currentY).stroke();
-    currentY += 20;
+    // 3. SALARY BREAKDOWN TABLE
+    const tableTop = doc.y;
+    doc.fillColor('#4f46e5').rect(50, tableTop, 495, 25).fill();
+    doc.fillColor('#ffffff').font('Helvetica-Bold').text('Earnings', 55, tableTop + 7);
+    doc.text('Amount', 240, tableTop + 7);
+    doc.text('Deductions', 310, tableTop + 7);
+    doc.text('Amount', 485, tableTop + 7);
 
-    // Employee & Company Details Section
-    doc.fillColor('#475569').fontSize(9).font('Helvetica-Bold').text('RECIPIENT', 50, currentY);
-    doc.text('PAYER INFORMATION', 350, currentY);
-    
-    currentY += 15;
-    doc.fillColor('#1e293b').fontSize(11).font('Helvetica-Bold').text(payslip.name, 50, currentY);
-    doc.text('EMP LOGIC INC.', 350, currentY);
-    
-    currentY += 15;
-    doc.font('Helvetica').fontSize(9).fillColor('#64748b').text(`ID: EMP-${payslip.userId.toString().padStart(4, '0')}`, 50, currentY);
-    doc.text('HQ - Tech Park Avenue', 350, currentY);
-    
-    currentY += 12;
-    doc.text(`Dept: ${payslip.department || 'General'}`, 50, currentY);
-    doc.text(`Role: ${payslip.role || 'Staff'}`, 50, currentY + 12);
-    doc.text('support@emplogic.io', 350, currentY);
-    
-    currentY += 50;
+    let currentY = tableTop + 35;
+    const rowHeight = 20;
 
-    // Summary Box
-    doc.fillColor('#f8fafc').rect(50, currentY, 500, 60).fill();
-    doc.fillColor('#4f46e5').fontSize(10).font('Helvetica-Bold').text('TOTAL NET PAYOUT', 70, currentY + 15);
-    doc.fontSize(22).text(`$${payslip.netSalary.toLocaleString()}`, 70, currentY + 30);
-    
-    doc.fillColor('#64748b').fontSize(10).font('Helvetica').text('STATUS', 380, currentY + 15);
-    doc.fillColor('#10b981').fontSize(14).font('Helvetica-Bold').text('PROCESSED', 380, currentY + 30);
+    // Derived Breakdown
+    const hra = Math.round(payslip.baseSalary * 0.4);
+    const basic = payslip.baseSalary;
+    const bonus = payslip.bonus || 0;
+    const allowances = (payslip.allowances || 0) - hra; // Simple split
 
-    currentY += 90;
+    const pf = Math.round(totalDeductions * 0.4);
+    const insurance = Math.round(totalDeductions * 0.1);
+    const tax = totalDeductions - pf - insurance;
 
-    // Earnings & Deductions Table
-    doc.fillColor('#1e293b').fontSize(12).font('Helvetica-Bold').text('Earnings Breakdown', 50, currentY);
-    currentY += 20;
-    
-    const addTableRow = (label, amt, isBold = false) => {
-        doc.fillColor(isBold ? '#1e293b' : '#475569').fontSize(10).font(isBold ? 'Helvetica-Bold' : 'Helvetica');
-        doc.text(label, 60, currentY);
-        doc.text(`$${amt.toLocaleString()}`, 450, currentY, { align: 'right', width: 100 });
-        currentY += 20;
-        doc.strokeColor('#f1f5f9').lineWidth(0.5).moveTo(55, currentY - 5).lineTo(545, currentY - 5).stroke();
-    };
+    const earnings = [
+        { label: 'Basic Salary', val: basic },
+        { label: 'HRA', val: hra },
+        { label: 'Bonus', val: bonus },
+        { label: 'Allowances', val: Math.max(0, allowances) }
+    ];
 
-    addTableRow('Base Salary', payslip.baseSalary);
-    addTableRow('Bonus', payslip.bonus || 0);
-    addTableRow('Allowances', payslip.allowances || 0);
-    addTableRow('Deductions', -(payslip.deductions || 0));
-    
+    const deductions = [
+        { label: 'Income Tax', val: tax },
+        { label: 'PF', val: pf },
+        { label: 'Insurance', val: insurance }
+    ];
+
+    const maxRows = Math.max(earnings.length, deductions.length);
+    doc.fillColor('#1e293b').font('Helvetica');
+
+    for (let i = 0; i < maxRows; i++) {
+        if (earnings[i]) {
+            doc.text(earnings[i].label, 55, currentY);
+            doc.text(`$${earnings[i].val.toLocaleString()}`, 240, currentY);
+        }
+        if (deductions[i]) {
+            doc.text(deductions[i].label, 310, currentY);
+            doc.text(`$${deductions[i].val.toLocaleString()}`, 485, currentY);
+        }
+        currentY += rowHeight;
+        doc.strokeColor('#f1f5f9').lineWidth(0.5).moveTo(50, currentY - 5).lineTo(545, currentY - 5).stroke();
+    }
+
     currentY += 10;
-    doc.fillColor('#f1f5f9').rect(50, currentY, 500, 30).fill();
-    doc.fillColor('#1e293b').fontSize(11).font('Helvetica-Bold').text('Total Net Earnings', 65, currentY + 10);
-    doc.text(`$${payslip.netSalary.toLocaleString()}`, 450, currentY + 10, { align: 'right', width: 100 });
 
-    // Footer
-    doc.moveDown(5);
-    doc.fillColor('#94a3b8').fontSize(8).font('Helvetica').text('Electronic Payroll Receipt. This document is system generated and does not require a signature.', 50, 750, { align: 'center', width: 500 });
-    doc.text('EMP LOGIC - Secure Employee Management Portal', 50, 765, { align: 'center', width: 500 });
+    // 4. SUMMARY
+    doc.font('Helvetica-Bold');
+    doc.text('Total Earnings', 55, currentY);
+    doc.text(`$${totalEarnings.toLocaleString()}`, 240, currentY);
+    
+    doc.text('Total Deductions', 310, currentY);
+    doc.text(`$${totalDeductions.toLocaleString()}`, 485, currentY);
+    
+    currentY += 30;
+    
+    // Net Salary Box
+    doc.fillColor('#eef2ff').rect(50, currentY, 495, 35).fill();
+    doc.fillColor('#4f46e5').fontSize(14).text('Net Salary Payable', 60, currentY + 10);
+    doc.fontSize(16).font('Helvetica-Bold').text(`$${netSalary.toLocaleString()}`, 400, currentY + 10, { width: 140, align: 'right' });
+    
+    currentY += 60;
+
+    // 5. FOOTER
+    doc.fillColor('#64748b').fontSize(10).font('Helvetica');
+    doc.text(`Generated On: ${new Date().toLocaleDateString()}`, 50, currentY);
+    
+    doc.text('Authorized Signature', 400, currentY, { align: 'right' });
+    doc.moveDown(0.2);
+    doc.text('______________________', 400, doc.y, { align: 'right' });
+    doc.moveDown(2);
+    
+    doc.fontSize(8).text('This is a system generated payslip and does not require a physical signature.', 50, doc.y, { align: 'center', width: 495 });
 
     doc.end();
 
   } catch (err) {
-    console.error('❌ PDF Error:', err.message);
-    res.status(500).json({ success: false, message: 'Error generating PDF', error: err.message });
+    console.error('❌ PDF Generation Error:', err.message);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, message: 'Server error generating payslip', error: err.message });
+    }
   }
 };
 
 module.exports = { getMyPayslips, getTeamPayslips, downloadPayslipPDF };
+
 

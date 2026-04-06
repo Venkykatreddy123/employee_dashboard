@@ -21,12 +21,20 @@ const migrate = async () => {
             console.log('participants already exists or failed:', e.message);
         }
 
-        // Add time to LEAVES if not exists
+        // Add department to USERS
         try {
-            await executeQuery('ALTER TABLE LEAVES ADD COLUMN time TEXT');
-            console.log('Added time to LEAVES');
+            await executeQuery('ALTER TABLE USERS ADD COLUMN department TEXT DEFAULT "Engineering"');
+            console.log('Added department to USERS');
         } catch (e) {
-            console.log('time in LEAVES already exists or failed:', e.message);
+            console.log('department in USERS already exists or failed:', e.message);
+        }
+
+        // Add designation to USERS
+        try {
+            await executeQuery('ALTER TABLE USERS ADD COLUMN designation TEXT DEFAULT "Developer"');
+            console.log('Added designation to USERS');
+        } catch (e) {
+            console.log('designation in USERS already exists or failed:', e.message);
         }
 
         console.log('Migration completed.');

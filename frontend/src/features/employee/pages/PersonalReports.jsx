@@ -1,12 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart3, TrendingUp, Clock, Calendar, CheckCircle, PieChart, Target, Loader2 } from 'lucide-react';
+import { BarChart3, TrendingUp, Clock, Calendar, CheckCircle, PieChart, Target, Loader2, Download } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getMyData } from '../../../services/meetingsService';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const PersonalReports = () => {
     const { user } = useAuth();
     const [stats, setStats] = useState({ sessions: 0, breaks: 0, meetings: 0 });
     const [loading, setLoading] = useState(true);
+
+    const exportToPDF = () => {
+        const doc = new jsPDF();
+        doc.setFontSize(22);
+        doc.setTextColor(79, 70, 229);
+        doc.text("Personal Productivity Statement", 14, 22);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Employee: ${user.name}`, 14, 30);
+        doc.text(`Email: ${user.email}`, 14, 35);
+        doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, 40);
+
+        const tableData = [
+            ["Work Sessions", stats.sessions.toString()],
+            ["Breaks Taken", stats.breaks.toString()],
+            ["Meetings Logged", stats.meetings.toString()],
+            ["Current Progress", "80%"]
+        ];
+
+        autoTable(doc, {
+            startY: 45,
+            head: [["Metric Category", "Total Count"]],
+            body: tableData,
+            theme: 'grid'
+        });
+
+        doc.save(`Personal_Statement_${new Date().toISOString().slice(0, 10)}.pdf`);
+    };
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -41,7 +72,9 @@ const PersonalReports = () => {
                     <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Personal Productivity Audit</h2>
                     <p style={{ color: '#64748b' }}>Individual performance metrics across all research protocols</p>
                 </div>
-                <button className="btn btn-primary">Download Statement</button>
+                <button className="btn btn-primary" onClick={exportToPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Download size={18} /> Download PDF Statement
+                </button>
             </header>
 
             <div className="grid grid-cols-3">

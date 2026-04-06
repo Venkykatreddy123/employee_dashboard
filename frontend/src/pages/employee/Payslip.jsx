@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Banknote, Download, Calendar, ArrowRight, Wallet, History, Info } from 'lucide-react';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 
 const Payslip = () => {
     const { user } = useAuth();
@@ -43,12 +41,27 @@ const Payslip = () => {
 
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
+            
+            // Format: EmployeeName_Month_Year_Payslip.pdf
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthIndex = parseInt(p.month, 10) - 1;
+            const monthName = monthNames[monthIndex] || p.month;
+            
+            const safeName = (user?.name || 'Employee').replace(/\s+/g, '_');
+            const filename = `${safeName}_${monthName}_${p.year}_Payslip.pdf`;
+            
             const a = document.createElement('a');
+            a.style.display = 'none';
             a.href = url;
-            a.download = `Payslip_${p.month}_${p.year}.pdf`;
+            a.download = filename;
+            
             document.body.appendChild(a);
             a.click();
-            a.remove();
+            
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }, 100);
         } catch (err) {
             console.error('Download error:', err);
             alert('Failed to connect to server');
@@ -106,7 +119,7 @@ const Payslip = () => {
                                     <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', marginBottom: '0.25rem' }}>Net Amount</p>
                                     <h3 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#4f46e5' }}>${p.netSalary.toLocaleString()}</h3>
                                 </div>
-                                <button className="btn btn-outline" style={{ borderRadius: '10px', padding: '0.625rem 1rem' }} onClick={() => downloadPDF(p)}>
+                                <button className="btn btn-outline" style={{ borderRadius: '10px', padding: '0.625rem 1rem' }} onClick={() => downloadPDF(p)} title="Download PDF Payslip">
                                     <Download size={18} />
                                 </button>
                             </div>

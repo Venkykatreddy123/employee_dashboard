@@ -14,12 +14,20 @@ try {
 // Ensure the DB is definitely reachable before letting the app pretend it's fine.
 const verifyConnection = async () => {
   try {
-    console.log("⏳ Attempting to connect to Turso database...");
+    const isRemote = process.env.TURSO_DATABASE_URL && process.env.TURSO_DATABASE_URL.startsWith('libsql://');
+    console.log(`⏳ Attempting to connect to ${isRemote ? 'Turso' : 'Local'} database...`);
     await dbClient.execute('SELECT 1;');
-    console.log("✅ Turso Connected Successfully!");
+    console.log(`✅ ${isRemote ? 'Turso' : 'Local'} Connected Successfully!`);
   } catch (err) {
-    console.error("❌ Turso Connection Failed:", err.message);
-    process.exit(1); // Stop server if DB totally unreachable
+    console.warn("⚠️ Remote Connection Failed. Falling back to local.db...");
+    try {
+        dbClient = createClient({ url: 'file:./local.db' });
+        await dbClient.execute('SELECT 1;');
+        console.log("✅ Local SQLite Fallback Successful!");
+    } catch (localErr) {
+        console.error("❌ Fatal: Both remote and local DB connections failed:", localErr.message);
+        process.exit(1);
+    }
   }
 };
 

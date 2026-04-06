@@ -75,7 +75,7 @@ const LeaveApplication = () => {
                 style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }} 
               />
             </div>
-            <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={submitting}>
+            <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={submitting}>
               <Send size={18} /> {submitting ? 'Submitting...' : 'Submit Application'}
             </button>
           </form>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Download, Users, FileSpreadsheet } from 'lucide-react';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const TeamPayslips = () => {
     const { user } = useAuth();
@@ -29,45 +29,48 @@ const TeamPayslips = () => {
         fetchPayslips();
     }, []);
 
-    const exportToCSV = () => {
-        // Headers
-        const headers = ["ID", "Employee ID", "Employee Name", "Role", "Month", "Year", "Basic Salary", "Allowances", "Deductions", "Net Salary", "Generated At"];
+    const exportToPDF = () => {
+        const doc = new jsPDF();
         
-        // Data mapping
-        const csvRows = payslips.map(p => [
-            p.id,
-            p.userId,
-            p.employeeName,
-            p.role,
-            p.month,
-            p.baseSalary,
-            p.allowances,
-            p.deductions,
-            p.netSalary,
-            new Date(p.createdAt).toLocaleDateString()
-        ]);
+        // Add Title
+        doc.setFontSize(20);
+        doc.setTextColor(79, 70, 229);
+        doc.text("Team Payroll Summary", 14, 22);
         
-        // Final CSV content
-        const csvContent = [
-            headers.join(','),
-            ...csvRows.map(row => row.join(','))
-        ].join('\n');
+        doc.setFontSize(11);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Organization: EMP Logic Research`, 14, 30);
+        doc.text(`Period: ${payslips.length > 0 ? payslips[0].month + ' ' + payslips[0].year : 'N/A'}`, 14, 35);
+        doc.text(`Generated On: ${new Date().toLocaleDateString()}`, 14, 40);
 
-        // Trigger download
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement("a");
-        const url = URL.createObjectURL(blob);
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Team_Payslips_${new Date().toISOString().slice(0, 10)}.csv`);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Prep table data
+        const tableData = payslips.map(p => [
+            p.employeeName,
+            p.month,
+            `$${p.baseSalary?.toLocaleString()}`,
+            `$${p.bonus?.toLocaleString() || 0}`,
+            `$${p.deductions?.toLocaleString() || 0}`,
+            `$${p.netSalary?.toLocaleString()}`
+        ]);
+
+        // Generate table
+        autoTable(doc, {
+            startY: 50,
+            head: [["Employee", "Month", "Base", "Bonus", "Deductions", "Net Salary"]],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [79, 70, 229], textColor: [255, 255, 255] },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+            margin: { top: 50 },
+        });
+
+        // Save
+        doc.save(`Team_Payroll_${new Date().toISOString().slice(0, 10)}.pdf`);
     };
 
     const downloadPDF = async (p) => {
       try {
-          const res = await fetch(`/api/payslips/${p.id}/download`, {
+          const res = await fetch(`/api/payslips/${p.id}/pdf`, {
               headers: { 'Authorization': `Bearer ${localStorage.getItem('emp_token')}` }
           });
           
@@ -79,12 +82,28 @@ const TeamPayslips = () => {
 
           const blob = await res.blob();
           const url = window.URL.createObjectURL(blob);
+          
+          // Format: EmployeeName_Month_Year_Payslip.pdf
+          const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+          const monthIndex = parseInt(p.month, 10) - 1;
+          const monthName = monthNames[monthIndex] || p.month;
+          
+          const safeName = (p.employeeName || 'Employee').replace(/\s+/g, '_');
+          const filename = `${safeName}_${monthName}_${p.year}_Payslip.pdf`;
+          
           const a = document.createElement('a');
+          a.style.display = 'none';
           a.href = url;
-          a.download = `Payslip_${p.employeeName}_${p.month}_${p.year}.pdf`;
+          a.download = filename;
+          
           document.body.appendChild(a);
           a.click();
-          a.remove();
+          
+          // Cleanup
+          setTimeout(() => {
+              window.URL.revokeObjectURL(url);
+              document.body.removeChild(a);
+          }, 100);
       } catch (err) {
           console.error('Download error:', err);
           alert('Failed to connect to server');
@@ -96,11 +115,11 @@ const TeamPayslips = () => {
             <header style={{ marginBottom: '2.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', letterSpacing: '-0.025em' }}>Team Payslips</h2>
-                    <p style={{ color: '#64748b', marginTop: '0.25rem' }}>View and export your team's monthly payroll statements</p>
+                    <p style={{ color: '#64748b', marginTop: '0.25rem' }}>View and export your team's monthly payroll statements in PDF format</p>
                 </div>
                 {payslips.length > 0 && (
-                    <button className="btn btn-outline" onClick={exportToCSV}>
-                        <FileSpreadsheet size={18} /> Export CSV
+                    <button className="btn btn-primary" onClick={exportToPDF}>
+                        <Download size={18} /> Export PDF Report
                     </button>
                 )}
             </header>

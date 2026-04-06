@@ -7,5 +7,6 @@ router.get('/my', verifyToken, getMyPayslips);
 
 // Download PDF
 router.get('/:id/download', verifyToken, downloadPayslipPDF);
+router.get('/:id/pdf', verifyToken, downloadPayslipPDF);
 
 module.exports = router;

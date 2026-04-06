@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Banknote, Search, Calendar, User, Download, FileText, Filter } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const PayslipManagement = () => {
     const [payslips, setPayslips] = useState([]);
@@ -27,6 +29,35 @@ const PayslipManagement = () => {
         fetchPayslips();
     }, []);
 
+    const exportToPDF = () => {
+        const doc = new jsPDF();
+        doc.setFontSize(20);
+        doc.setTextColor(79, 70, 229);
+        doc.text("Organization-wide Payroll Report", 14, 22);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(100, 116, 139);
+        doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, 30);
+
+        const tableData = filteredPayslips.map(p => [
+            p.employeeName,
+            `${p.month}/${p.year}`,
+            `$${p.baseSalary?.toLocaleString()}`,
+            `$${p.netSalary?.toLocaleString()}`,
+            new Date(p.generatedAt).toLocaleDateString()
+        ]);
+
+        autoTable(doc, {
+            startY: 40,
+            head: [["Employee", "Period", "Base Salary", "Net Salary", "Generated At"]],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [79, 70, 229] },
+        });
+
+        doc.save(`All_Payslips_${new Date().toISOString().slice(0, 10)}.pdf`);
+    };
+
     const downloadPDF = async (p) => {
         try {
             const res = await fetch(`/api/payslips/${p.id}/download`, {
@@ -41,12 +72,27 @@ const PayslipManagement = () => {
 
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
+            
+            // Format: EmployeeName_Month_Year_Payslip.pdf
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthIndex = parseInt(p.month, 10) - 1;
+            const monthName = monthNames[monthIndex] || p.month;
+            
+            const safeName = (p.employeeName || 'Statement').replace(/\s+/g, '_');
+            const filename = `${safeName}_${monthName}_${p.year}_Payslip.pdf`;
+            
             const a = document.createElement('a');
+            a.style.display = 'none';
             a.href = url;
-            a.download = `Payslip_${p.employeeName}_${p.month}_${p.year}.pdf`;
+            a.download = filename;
+            
             document.body.appendChild(a);
             a.click();
-            a.remove();
+            
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }, 100);
         } catch (err) {
             console.error('Download error:', err);
             alert('Server connection failed');
@@ -66,6 +112,9 @@ const PayslipManagement = () => {
                     <p style={{ color: '#64748b' }}>Search and download all organization-wide generated payslips</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button className="btn btn-outline" onClick={exportToPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <Download size={18} /> Export PDF Report
+                    </button>
                     <div className="search-box" style={{ position: 'relative' }}>
                         <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
                         <input 
