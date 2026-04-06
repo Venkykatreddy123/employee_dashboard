@@ -1,4 +1,5 @@
 const { client } = require('../config/db');
+const bcrypt = require('bcryptjs');
 
 /**
  * getAllEmployees - Fetch all personnel records
@@ -8,7 +9,7 @@ exports.getAllEmployees = async (req, res) => {
     console.log('📡 API: GET /api/employees');
     try {
         const query = await client.execute("SELECT id, emp_id, name, email, role, department, joining_date, salary FROM employees ORDER BY created_at DESC");
-        res.json(query.rows);
+        res.json({ success: true, employees: query.rows });
     } catch (err) {
         console.error('🔥 DB Fetch Error:', err.message);
         res.status(500).json({ success: false, message: 'Server error: Fetch failed' });
@@ -21,7 +22,7 @@ exports.getAllEmployees = async (req, res) => {
  */
 exports.addEmployee = async (req, res) => {
     const { emp_id, name, email, password, role, department, joining_date, salary } = req.body;
-    console.log(`📡 API: POST /api/employees - ${email}`);
+    console.log(`📡 API: POST /api/employees - Enrollment: ${email}`);
 
     // Basic Input Validation
     if (!emp_id || !name || !email || !password) {
@@ -29,19 +30,21 @@ exports.addEmployee = async (req, res) => {
     }
 
     try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         await client.execute({
             sql: "INSERT INTO employees (emp_id, name, email, password, role, department, joining_date, salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            args: [emp_id, name, email, password, role || 'Employee', department || 'General', joining_date, salary || 0]
+            args: [emp_id, name, email, hashedPassword, role || 'Employee', department || 'General', joining_date, salary || 0]
         });
         
         // Sync with users table for authentication
         await client.execute({
-            sql: "INSERT OR IGNORE INTO users (email, password, role) VALUES (?, ?, ?)",
-            args: [email, password, role || 'Employee']
+            sql: "INSERT OR IGNORE INTO users (email, password, role, emp_id, name) VALUES (?, ?, ?, ?, ?)",
+            args: [email, hashedPassword, role || 'Employee', emp_id, name]
         });
 
         console.log(`✅ DB: Data persisted for ${emp_id}`);
-        res.status(201).json({ success: true, message: 'Employee added successfully', emp_id });
+        res.status(201).json({ success: true, message: 'Employee enrolled and synced', emp_id });
     } catch (err) {
         console.error('🔥 DB Insert Error:', err.message);
         res.status(400).json({ success: false, message: 'Database rejection: ' + err.message });

@@ -2,8 +2,8 @@ import axios from 'axios';
 const baseURL = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
-  baseURL: baseURL,
-  timeout: 30000, // Increased timeout for Render cold starts
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5050',
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -11,21 +11,18 @@ const api = axios.create({
 
 /**
  * 🔐 Request Interceptor: Identity Propagation
- * Orchestrates the attachment of JWT 'Bearer' tokens to the Authorization header
+ * Standardizes the attachment of JWT 'Bearer' tokens to the Authorization header
  */
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  
+  console.log(`📡 [AXIOS] Handshake Token Check: ${token ? 'PRESENT' : 'MISSING'}`);
+
   if (token && token !== 'null' && token !== 'undefined') {
     config.headers.Authorization = `Bearer ${token.trim()}`;
-    console.log(`🌐 [AXIOS Request] Authenticated Handshake: ${config.method.toUpperCase()} ${config.url}`);
-  } else {
-    console.warn(`🌐 [AXIOS Request] Anonymous Handshake: ${config.method.toUpperCase()} ${config.url}`);
   }
   
   return config;
 }, (error) => {
-  console.error('❌ [AXIOS Request Error]', error);
   return Promise.reject(error);
 });
 
@@ -54,18 +51,23 @@ api.interceptors.response.use(
     }
 
     // [CASE A] Unauthorized/Forbidden (401/403)
-    // Decommission local identity registry if the token is invalid or expired
+    // Decommission local identity registry ONLY if we definitely have an expired or missing token.
+    // For many apps, a 401 is an indicator to re-login, but we'll follow the user's strategic constraint
+    // to avoid auto-logout on clicking the Meetings section.
     if (response && (response.status === 401 || response.status === 403)) {
-      console.warn('🔑 Authentication Tiers Denied. Resetting local environment...');
-      
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      console.warn(`🔑 [AUTHENTICATION WARNING] Path: ${config.url} | Status: ${response.status} | Token Issue Detected.`);
 
-      // Redirect if not on the login node to avoid loops
-      if (!window.location.pathname.includes('/login')) {
-         console.warn('🔄 Redirecting to Authentication Node...');
-         window.location.href = '/login?session_expired=true';
+      // If it's a 401 on the meetings API, we don't want to logout immediately.
+      if (config.url.includes('/api/meetings')) {
+          console.error("🛑 [Identity Handshake Denial] The Meetings API rejected the protocol token. Synchronization suspended.");
+          return Promise.reject(error); // This will be caught by the page-level error handler
       }
+
+      // Case-Specific handling: Do NOT auto-logout.
+      console.warn("🔐 [AXIOS] Unauthorized node detected - handling session gracefully.");
+      
+      // We no longer strip the token automatically. Instead, let the UI handle the denial state.
+      // This allows users to stay on their current page if it's a transient node failure.
     }
 
     // [CASE B] Node Cold Start Persistence

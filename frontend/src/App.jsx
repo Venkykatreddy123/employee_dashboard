@@ -12,6 +12,8 @@ import Login from './pages/Login'
 import Salary from './pages/Salary'
 import Performance from './pages/Performance'
 import MeetingsLog from './pages/MeetingsLog'
+import MeetingRoom from './pages/MeetingRoom'
+import JoinRedirect from './pages/JoinRedirect'
 
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -48,6 +50,8 @@ const App = () => {
         <Route path="salary" element={<Salary />} />
         <Route path="performance" element={<Performance />} />
         <Route path="meetings" element={<MeetingsLog />} />
+        <Route path="meetings/:meeting_id" element={<MeetingRoom />} />
+        <Route path="meet/:meeting_id" element={<JoinRedirect />} />
       </Route>
       
       <Route path="*" element={<Navigate to="/" replace />} />

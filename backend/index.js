@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
 const cors = require('cors');
 const morgan = require('morgan');
 require('dotenv').config();
@@ -31,6 +33,21 @@ const tursoRoutes = require('./routes/tursoRoutes');
 const departmentRoutes = require('./routes/departmentRoutes');
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "*", // allow all origins for now as requested
+    methods: ["GET", "POST"]
+  }
+});
+const { broadcastMeetingCreated } = require('./sockets/meetingSocket')(io);
+
+// Expose io to routes/controllers if needed via midddleware
+app.use((req, res, next) => {
+  req.io = io;
+  req.broadcastMeetingCreated = broadcastMeetingCreated;
+  next();
+});
 
 // 3. Middlewares: Production Hardening
 app.use(cors({
@@ -95,7 +112,7 @@ const startServer = async () => {
     // Dynamic Port Binding for Render Excellence
     const PORT = process.env.PORT || 5000;
     
-    const server = app.listen(PORT, () => {
+    server.listen(PORT, () => {
         console.log(`✅ Production Hub Operational on Port ${PORT}`);
         console.log(`📡 Dashboard API: http://localhost:${PORT}/api`);
         console.log(`📋 Health Check: http://localhost:${PORT}/api/health\n`);

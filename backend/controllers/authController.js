@@ -1,20 +1,22 @@
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const { client } = require('../config/db');
 
 /**
  * login - Authenticates user and returns JWT
- * Identity Registry: employees table
+ * Identity Registry: Unified users + employees handshake
  */
 exports.login = async (req, res) => {
     try {
-        console.log("LOGIN BODY:", req.body);
         const { email, password } = req.body;
+        console.log(`📡 [AUTH] Login Handshake initiated for: ${email}`);
 
+        // Join users and employees on emp_id
         const result = await client.execute({
             sql: `
-                SELECT u.id, u.email, u.password, u.role, e.emp_id 
+                SELECT u.id, u.email, u.password, u.role, u.emp_id, e.name
                 FROM users u 
-                LEFT JOIN employees e ON u.email = e.email
+                LEFT JOIN employees e ON u.emp_id = e.emp_id
                 WHERE u.email = ? LIMIT 1
             `,
             args: [email]
@@ -23,13 +25,14 @@ exports.login = async (req, res) => {
         const user = result.rows[0];
 
         if (!user) {
-            console.warn(`❌ [AUTH] User not found: ${email}`);
-            return res.status(401).json({ error: "User not found" });
+            console.warn(`❌ [AUTH] Node Registry Denial: User not registered: ${email}`);
+            return res.status(401).json({ error: "User not registered. Please contact admin" });
         }
 
-        // If using plain password as requested
-        if (user.password !== password) {
-            console.warn(`❌ [AUTH] Invalid password for: ${email}`);
+        // Verify password using bcrypt
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            console.warn(`❌ [AUTH] Protocol Mismatch: Invalid password for: ${email}`);
             return res.status(401).json({ error: "Invalid password" });
         }
 
@@ -37,7 +40,8 @@ exports.login = async (req, res) => {
         const payload = {
             id: user.emp_id || user.id, // Prefer emp_id for database operations
             email: user.email,
-            role: user.role
+            role: user.role,
+            name: user.name
         };
 
         const token = jwt.sign(payload, process.env.JWT_SECRET || 'supersecretkey123', {
@@ -92,21 +96,23 @@ exports.getMe = async (req, res) => {
 exports.register = async (req, res) => {
     const { emp_id, name, email, password, role, department } = req.body;
     try {
+        const hashedPassword = await bcrypt.hash(password, 10);
+
         await client.execute({
             sql: "INSERT INTO employees (emp_id, name, email, password, role, department) VALUES (?, ?, ?, ?, ?, ?)",
-            args: [emp_id, name, email, password, role || 'Employee', department || 'General']
+            args: [emp_id, name, email, hashedPassword, role || 'Employee', department || 'General']
         });
         
         // Sync with users table for authentication
         await client.execute({
-            sql: "INSERT OR IGNORE INTO users (email, password, role) VALUES (?, ?, ?)",
-            args: [email, password, role || 'Employee']
+            sql: "INSERT OR IGNORE INTO users (email, password, role, emp_id, name) VALUES (?, ?, ?, ?, ?)",
+            args: [email, hashedPassword, role || 'Employee', emp_id, name]
         });
 
-        res.status(201).json({ message: 'User registered successfully and synced to auth registry.' });
+        res.status(201).json({ success: true, message: 'Identity Node Provisioned and Synced' });
     } catch (err) {
         console.error("Registration error:", err);
-        res.status(400).json({ message: err.message });
+        res.status(400).json({ success: false, message: err.message });
     }
 };
 

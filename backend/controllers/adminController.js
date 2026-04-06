@@ -7,16 +7,23 @@ const createUser = async (req, res) => {
     const { name, email, password, role, manager_id, department } = req.body;
     const emp_id = `EMP${Math.floor(Math.random() * 90000) + 10000}`;
     
-    // Hash password (plain text strategy used in other parts, but let's be secure if bcrypt is here)
-    const hashedPassword = password; // Keeping consistent with the user's current "manager123" plain style or bcrypt
+    // Using BCrypt for secure identity provisioning
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     await executeQuery(
       'INSERT INTO employees (emp_id, name, email, password, role, manager_id, department) VALUES (?, ?, ?, ?, ?, ?, ?)',
       [emp_id, name, email, hashedPassword, role, manager_id || null, department || 'General']
     );
 
-    res.status(201).json({ success: true, message: 'User provisioned in global registry' });
+    // Sync with users table for unified authentication
+    await executeQuery(
+      'INSERT INTO users (email, password, role, emp_id, name) VALUES (?, ?, ?, ?, ?)',
+      [email, hashedPassword, role, emp_id, name]
+    );
+
+    res.status(201).json({ success: true, message: 'Identity provisioned and synced to auth registry' });
   } catch (err) {
+    console.error('Provisioning failure:', err.message);
     res.status(500).json({ success: false, message: 'Provisioning failed', error: err.message });
   }
 };
@@ -40,8 +47,17 @@ const updateUser = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
+    // Get email to delete from users table
+    const empResult = await executeQuery('SELECT email FROM employees WHERE id = ?', [id]);
+    const email = empResult.rows[0]?.email;
+
     await executeQuery('DELETE FROM employees WHERE id = ?', [id]);
-    res.json({ success: true, message: 'Identity purged' });
+    
+    if (email) {
+      await executeQuery('DELETE FROM users WHERE email = ?', [email]);
+    }
+
+    res.json({ success: true, message: 'Identity purged from all registries' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Purge failed' });
   }

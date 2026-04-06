@@ -55,6 +55,14 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
+      // Update socket auth with new token and initiate handshake
+      import('../services/socket').then(({ default: socket }) => {
+        if (socket.auth) {
+          socket.auth.token = data.token;
+          socket.connect();
+        }
+      });
+
       setUser(data.user);
       setIsAuthenticated(true);
       navigate('/');

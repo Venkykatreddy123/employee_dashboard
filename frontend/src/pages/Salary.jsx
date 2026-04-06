@@ -34,7 +34,7 @@ const Salary = () => {
       
       if (isAdminOrHR) {
         const empRes = await api.get('/api/employees');
-        setEmployees(empRes.data);
+        setEmployees(empRes.data.employees || []);
       }
       setLoading(false);
     } catch (err) {

@@ -47,7 +47,7 @@ const Projects = () => {
       // Only fetch personnel registry if Admin/Manager
       if (isAdmin) {
           const empRes = await api.get('/api/employees');
-          setEmployees(Array.isArray(empRes.data) ? empRes.data : []);
+          setEmployees(empRes.data.employees || []);
       }
       
       setLoading(false);

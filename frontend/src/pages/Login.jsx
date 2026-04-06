@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, LogIn, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -8,6 +9,8 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,6 +20,8 @@ const Login = () => {
     
     if (result.success) {
       toast.success('Welcome back!');
+      const from = location.state?.from || '/';
+      navigate(from, { replace: true });
     } else {
       toast.error(result.message);
     }

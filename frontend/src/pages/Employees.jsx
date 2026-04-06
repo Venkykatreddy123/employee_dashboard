@@ -33,8 +33,23 @@ const Employees = () => {
       setSyncError(null);
       console.log('📡 Syncing Personnel Registry [Attempt:', retryCount + 1, ']');
       
-      const response = await api.get('/api/employees');
-      setEmployees(Array.isArray(response.data) ? response.data : []);
+      const response = await api.get('/api/employees', {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      });
+      
+      console.log('📡 [Personnel Registry] Raw Signal Received:', response.data);
+      
+      if (response.data && response.data.success) {
+        const personnel = response.data.employees || [];
+        console.log('✅ [Personnel Registry] Validated Cluster:', personnel.length, 'Nodes');
+        setEmployees(personnel);
+      } else {
+        setEmployees([]);
+      }
       setLoading(false);
       setRetryCount(0); // Reset on success
     } catch (err) {
