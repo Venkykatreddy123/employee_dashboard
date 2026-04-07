@@ -44,6 +44,8 @@ exports.addEmployee = async (req, res) => {
         });
 
         console.log(`✅ DB: Data persisted for ${emp_id}`);
+        // 📡 Real-Time Hub Sync
+        if (req.io) req.io.emit('dashboardUpdate');
         res.status(201).json({ success: true, message: 'Employee enrolled and synced', emp_id });
     } catch (err) {
         console.error('🔥 DB Insert Error:', err.message);
@@ -95,6 +97,8 @@ exports.updateEmployee = async (req, res) => {
         }
 
         console.log(`✅ DB: Record updated for ${id}`);
+        // 📡 Real-Time Hub Sync
+        if (req.io) req.io.emit('dashboardUpdate');
         res.json({ success: true, message: 'Employee updated successfully' });
     } catch (err) {
         console.error('🔥 DB Update Error:', err.message);
@@ -129,6 +133,8 @@ exports.deleteEmployee = async (req, res) => {
         }
 
         console.log(`✅ DB: Record purged for ${id}`);
+        // 📡 Real-Time Hub Sync
+        if (req.io) req.io.emit('dashboardUpdate');
         res.json({ success: true, message: 'Employee deleted' });
     } catch (err) {
         console.error('🔥 DB Delete Error:', err.message);

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import socket from '../services/socket';
 
 const StatCard = ({ title, value, icon: Icon, color, trend, loading }) => (
   <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl transition-all group animate-fade-in relative overflow-hidden">
@@ -65,6 +66,33 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchStats();
+
+    // 📡 Real-Time Dashboard Synchronization Protocol
+    console.log('🔌 Handshaking with Gateway for Dash Pulse...');
+    
+    const handleSync = () => {
+        console.log('🔔 [SOCKET] Dashboard Sync Signal Received. Recalibrating Global Metrics...');
+        fetchStats();
+    };
+
+    socket.on('dashboardUpdate', handleSync);
+    socket.on('leaveCreated', handleSync);
+    socket.on('leaveUpdated', handleSync);
+    socket.on('leaveDeleted', handleSync);
+
+    // 🔄 30-Second Polling Fallback (Strategic Registry Refresh)
+    const pollInterval = setInterval(() => {
+        console.log('🔄 [Polling] Regular Registry Pulse Check...');
+        fetchStats();
+    }, 30000);
+
+    return () => {
+        socket.off('dashboardUpdate', handleSync);
+        socket.off('leaveCreated', handleSync);
+        socket.off('leaveUpdated', handleSync);
+        socket.off('leaveDeleted', handleSync);
+        clearInterval(pollInterval);
+    };
   }, [fetchStats]);
 
   if (!user) return <div className="p-20 text-center font-black animate-pulse uppercase tracking-[0.5em] text-gray-300 text-3xl">Synchronizing Identity...</div>;

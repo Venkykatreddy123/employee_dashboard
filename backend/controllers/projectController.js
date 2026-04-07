@@ -21,6 +21,8 @@ exports.createProject = async (req, res) => {
                 });
             }
         }
+        // 📡 Real-Time Hub Sync
+        if (req.io) req.io.emit('dashboardUpdate');
         res.status(201).json({ success: true, message: 'Project initialized', project_id });
     } catch (err) {
         console.error('🔥 DB Insert Error:', err.message);
@@ -119,6 +121,8 @@ exports.updateProject = async (req, res) => {
                 });
             }
         }
+        // 📡 Real-Time Hub Sync
+        if (req.io) req.io.emit('dashboardUpdate');
         res.json({ success: true, message: 'Portfolio updated' });
     } catch (err) {
         console.error('🔥 Update Error:', err.message);
@@ -134,6 +138,8 @@ exports.deleteProject = async (req, res) => {
     console.log(`📡 API: DELETE /api/projects/${id}`);
     try {
         await client.execute({ sql: "DELETE FROM projects WHERE project_id = ?", args: [id] });
+        // 📡 Real-Time Hub Sync
+        if (req.io) req.io.emit('dashboardUpdate');
         res.json({ success: true, message: 'Project decommissioned' });
     } catch (err) {
         res.status(500).json({ success: false, message: 'Delete failed' });

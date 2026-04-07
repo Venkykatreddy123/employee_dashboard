@@ -17,10 +17,11 @@ exports.requestLeave = async (req, res) => {
 
         console.log(`✅ [DB INSERT Result]:`, result);
 
-        // Real-time Sync: Inform Admin Hub of New Registry
+        // Real-Time Sync: Inform Admin Hub of New Registry
         if (req.io) {
             req.io.emit('leaveCreated', { employee_id, from_date, to_date, reason, status: 'Pending' });
-            console.log('📡 [SOCKET] Broadcast: leaveCreated');
+            req.io.emit('dashboardUpdate');
+            console.log('📡 [SOCKET] Broadcast: leaveCreated & dashboardUpdate');
         }
 
         res.status(201).json({ success: true, message: 'Leave Request Submitted Successfully' });
@@ -89,7 +90,8 @@ exports.updateLeaveStatus = async (req, res) => {
         // Real-time Sync: Inform Hub of Registry Evolution
         if (req.io) {
             req.io.emit('leaveUpdated', { id, status });
-            console.log('📡 [SOCKET] Broadcast: leaveUpdated');
+            req.io.emit('dashboardUpdate');
+            console.log('📡 [SOCKET] Broadcast: leaveUpdated & dashboardUpdate');
         }
 
         res.json({ success: true, message: `Leave Request ${status} Successfully` });
@@ -115,7 +117,8 @@ exports.deleteLeave = async (req, res) => {
         // Real-time Sync: Inform Hub of Registry Reduction
         if (req.io) {
             req.io.emit('leaveDeleted', { id });
-            console.log('📡 [SOCKET] Broadcast: leaveDeleted');
+            req.io.emit('dashboardUpdate');
+            console.log('📡 [SOCKET] Broadcast: leaveDeleted & dashboardUpdate');
         }
 
         res.json({ success: true, message: 'Leave Request Deleted Successfully' });
