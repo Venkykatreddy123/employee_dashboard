@@ -13,35 +13,36 @@ let mock = getStored();
 // ── API Functions ──────────────────────────────────────────────
 export const getLeaves = async (role, userId) => {
   // Use specialized endpoints for roles
-  const path = role === 'Employee' ? `${API_BASE}/my-data` : 
-               role === 'Manager' ? `${API_BASE}/team-data` : `${API_BASE}/all-data`;
+  const path = (role === 'Employee' && userId) ? `${API_BASE}/leaves/my/${userId}` : `${API_BASE}/leaves`;
   
   const data = await tryFetch(path);
   if (data?.success) {
-    return data.data.leaves;
+    return data.data;
   }
   return role === 'Employee' && userId ? mock.filter(l => l.userId === userId) : mock;
 };
 
 export const addLeave = async (leave) => {
-  console.log('[API] Applying for leave via Turso');
-  const data = await tryFetch(`${API_BASE}/leave/apply`, { 
+  console.log('[API] Applying for leave via Backend');
+  // leave should have employee_id, from_date, to_date, reason
+  const data = await tryFetch(`${API_BASE}/leaves`, { 
     method: 'POST', 
-    body: JSON.stringify({ type: leave.type, reason: leave.reason, date: leave.date }) 
+    body: JSON.stringify(leave) 
   });
-  if (data?.success) return data;
-  return { success: false, message: 'Failed to submit leave to backend' };
-};
-
-export const approveLeave = async (id, status) => {
-  const endpoint = status === 'Approved' ? 'approve' : 'reject';
-  console.log(`[API] Processing leave ${id} for ${status}`);
-  const data = await tryFetch(`${API_BASE}/leave/${id}/${endpoint}`, { method: 'PUT' });
   return data;
 };
 
-export const rejectLeave = async (id) => {
-  console.log(`[API] Rejecting leave ${id} via dedicated call`);
-  const data = await tryFetch(`${API_BASE}/leave/${id}/reject`, { method: 'PUT' });
+export const approveLeave = async (id, status) => {
+  console.log(`[API] Processing leave ${id} for ${status}`);
+  const data = await tryFetch(`${API_BASE}/leaves/${id}`, { 
+    method: 'PUT',
+    body: JSON.stringify({ status })
+  });
+  return data;
+};
+
+export const deleteLeave = async (id) => {
+  console.log(`[API] Deleting leave ${id}`);
+  const data = await tryFetch(`${API_BASE}/leaves/${id}`, { method: 'DELETE' });
   return data;
 };

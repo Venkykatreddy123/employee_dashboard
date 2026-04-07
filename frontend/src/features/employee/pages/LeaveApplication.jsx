@@ -6,26 +6,41 @@ import { Calendar, Send, History, CheckCircle, Clock } from 'lucide-react';
 const LeaveApplication = () => {
   const { user } = useAuth();
   const [leaves, setLeaves] = useState([]);
-  const [formData, setFormData] = useState({ type: 'Sick Leave', reason: '', date: '' });
+  const [formData, setFormData] = useState({ 
+    from_date: '', 
+    to_date: '', 
+    reason: '' 
+  });
   const [submitting, setSubmitting] = useState(false);
 
   const fetchLeaves = async () => {
-    const data = await getLeaves(user.role, user.id);
+    if (!user?.emp_id) return;
+    const data = await getLeaves(user.role, user.emp_id);
     setLeaves(data);
   };
 
   useEffect(() => {
     fetchLeaves();
-  }, []);
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    const result = await addLeave({ ...formData, userId: user.id, name: user.name });
+    
+    const payload = {
+      employee_id: user.emp_id,
+      from_date: formData.from_date,
+      to_date: formData.to_date,
+      reason: formData.reason
+    };
+
+    const result = await addLeave(payload);
     if (result.success) {
-      setFormData({ type: 'Sick Leave', reason: '', date: '' });
+      setFormData({ from_date: '', to_date: '', reason: '' });
       fetchLeaves();
       alert('Leave application submitted successfully!');
+    } else {
+      alert(result.message || 'Failed to submit leave');
     }
     setSubmitting(false);
   };
@@ -33,8 +48,8 @@ const LeaveApplication = () => {
   return (
     <div className="fade-in">
       <header style={{ marginBottom: '2rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Leave Application</h2>
-        <p style={{ color: '#64748b' }}>Apply for time off and track your status</p>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Leave Management</h2>
+        <p style={{ color: '#64748b' }}>Apply for time off and track your request status</p>
       </header>
 
       <div className="grid grid-cols-3">
@@ -43,25 +58,24 @@ const LeaveApplication = () => {
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.5rem' }}>New Request</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Leave Type</label>
-              <select 
-                value={formData.type} 
-                onChange={(e) => setFormData({...formData, type: e.target.value})}
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-              >
-                <option>Sick Leave</option>
-                <option>Annual Leave</option>
-                <option>Maternity Leave</option>
-                <option>Unpaid Leave</option>
-              </select>
-            </div>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Select Date</label>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>From Date</label>
               <input 
                 type="date" 
-                value={formData.date}
-                onChange={(e) => setFormData({...formData, date: e.target.value})}
+                value={formData.from_date}
+                onChange={(e) => setFormData({...formData, from_date: e.target.value})}
                 required
+                className="input"
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }} 
+              />
+            </div>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>To Date</label>
+              <input 
+                type="date" 
+                value={formData.to_date}
+                onChange={(e) => setFormData({...formData, to_date: e.target.value})}
+                required
+                className="input"
                 style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }} 
               />
             </div>
@@ -72,11 +86,13 @@ const LeaveApplication = () => {
                 value={formData.reason}
                 onChange={(e) => setFormData({...formData, reason: e.target.value})}
                 required
+                className="input"
                 style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #e2e8f0' }} 
+                placeholder="Brief reason for leave..."
               />
             </div>
             <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={submitting}>
-              <Send size={18} /> {submitting ? 'Submitting...' : 'Submit Application'}
+              <Send size={18} /> {submitting ? 'Submitting...' : 'Submit Request'}
             </button>
           </form>
         </div>
@@ -84,21 +100,25 @@ const LeaveApplication = () => {
         {/* History List */}
         <div className="card" style={{ gridColumn: 'span 2' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <History size={18} /> Application History
+            <History size={18} /> My Leave History
           </h3>
           <div style={{ borderTop: '1px solid #f1f5f9' }}>
             {leaves.length === 0 ? (
               <p style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8' }}>No leave applications found.</p>
             ) : (
               leaves.map(leave => (
-                <div key={leave.id} style={{ padding: '1rem 0', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div key={leave.id} style={{ padding: '1.25rem 0', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{leave.type}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>For Date: {leave.time || leave.date}</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#1e293b' }}>{leave.reason}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.25rem' }}>
+                      <Calendar size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                      {leave.from_date} to {leave.to_date}
+                    </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <span className={`badge ${leave.status === 'Approved' ? 'badge-success' : leave.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`}>
-                      {leave.status === 'Approved' ? <CheckCircle size={10} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> : ''}
+                    <span className={`badge ${leave.status === 'Approved' ? 'badge-success' : leave.status === 'Rejected' ? 'badge-danger' : 'badge-warning'}`} style={{ padding: '0.4rem 0.8rem', borderRadius: '20px' }}>
+                      {leave.status === 'Approved' ? <CheckCircle size={12} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> : 
+                       leave.status === 'Pending' ? <Clock size={12} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> : ''}
                       {leave.status}
                     </span>
                   </div>

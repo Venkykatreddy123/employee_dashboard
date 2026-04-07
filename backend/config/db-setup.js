@@ -28,6 +28,16 @@ const setupDatabase = async () => {
             await client.execute("DROP TABLE attendance");
         }
 
+        // 0.2 Inspection of Leaves Table
+        const leaveInfo = await client.execute("PRAGMA table_info(leaves)");
+        const hasEmployeeIdLeave = leaveInfo.rows.some(r => r.name === 'employee_id');
+        const hasFromDate = leaveInfo.rows.some(r => r.name === 'from_date');
+        
+        if (leaveInfo.rows.length > 0 && (!hasEmployeeIdLeave || !hasFromDate)) {
+            console.log('🔄 Outdated Leaves Schema detected. Migrating to production standard...');
+            await client.execute("DROP TABLE leaves");
+        }
+
         // 1. Core Identity Registry (Employees)
         await client.execute(`
             CREATE TABLE IF NOT EXISTS employees (
@@ -131,13 +141,11 @@ const setupDatabase = async () => {
         await client.execute(`
             CREATE TABLE IF NOT EXISTS leaves (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                emp_id TEXT NOT NULL,
-                leave_type TEXT NOT NULL,
-                start_date TEXT NOT NULL,
-                end_date TEXT NOT NULL,
+                employee_id TEXT NOT NULL,
+                from_date TEXT NOT NULL,
+                to_date TEXT NOT NULL,
                 reason TEXT,
-                status TEXT DEFAULT 'Pending',
-                FOREIGN KEY (emp_id) REFERENCES employees(emp_id) ON DELETE CASCADE
+                status TEXT DEFAULT 'Pending'
             )
         `);
 
