@@ -27,9 +27,13 @@ const PORT = process.env.PORT || 3001;
 
 // Middlewares
 app.use(cors({
-  origin: "*", // Permissive for production unblocking as requested
+  origin: (origin, callback) => {
+    // Reflect origin to bypass strict '*' checks while being permissive
+    callback(null, true);
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+  credentials: true
 }));
 app.use(express.json());
 

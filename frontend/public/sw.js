@@ -43,8 +43,18 @@ self.addEventListener('fetch', (event) => {
   // Handle navigation requests for SPA
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/index.html').then((response) => {
-        return response || fetch(event.request);
+      caches.match('/index.html').then((cachedResponse) => {
+        if (cachedResponse) return cachedResponse;
+        
+        return fetch(event.request).catch(() => {
+          // If offline and index.html not in cache, we can't do much,
+          // but let's avoid the TypeError.
+          return new Response('Offline: Resource not in cache.', {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: new Headers({ 'Content-Type': 'text/plain' })
+          });
+        });
       })
     );
     return;
