@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Banknote, Search, Calendar, User, Download, FileText, Filter } from 'lucide-react';
+import { Search, Calendar, User, Download, FileText, Filter } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { API_BASE } from '@/services/apiClient';
 
 const PayslipManagement = () => {
     const [payslips, setPayslips] = useState([]);
@@ -11,7 +12,7 @@ const PayslipManagement = () => {
     const fetchPayslips = async () => {
         try {
             setLoading(true);
-            const res = await fetch('/api/admin/payslips', {
+            const res = await fetch(`${API_BASE}/admin/payslips`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('emp_token')}` }
             });
             const data = await res.json();
@@ -20,6 +21,33 @@ const PayslipManagement = () => {
             }
         } catch (err) {
             console.error('Fetch error:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGeneratePayslips = async () => {
+        if (!confirm('Are you sure you want to generate payslips for all employees for the current month?')) return;
+        
+        try {
+            setLoading(true);
+            const res = await fetch(`${API_BASE}/payslips/generate`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${localStorage.getItem('emp_token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message);
+                fetchPayslips();
+            } else {
+                alert(data.message || 'Failed to generate payslips');
+            }
+        } catch (err) {
+            console.error('Generation error:', err);
+            alert('Failed to connect to server');
         } finally {
             setLoading(false);
         }
@@ -40,11 +68,11 @@ const PayslipManagement = () => {
         doc.text(`Generated On: ${new Date().toLocaleString()}`, 14, 30);
 
         const tableData = filteredPayslips.map(p => [
-            p.employeeName,
+            p.employee_name,
             `${p.month}/${p.year}`,
-            `$${p.baseSalary?.toLocaleString()}`,
-            `$${p.netSalary?.toLocaleString()}`,
-            new Date(p.generatedAt).toLocaleDateString()
+            `$${p.basic_salary?.toLocaleString()}`,
+            `$${p.net_salary?.toLocaleString()}`,
+            new Date(p.created_at).toLocaleDateString()
         ]);
 
         autoTable(doc, {
@@ -60,7 +88,7 @@ const PayslipManagement = () => {
 
     const downloadPDF = async (p) => {
         try {
-            const res = await fetch(`/api/payslips/${p.id}/download`, {
+            const res = await fetch(`${API_BASE}/payslips/${p.id}/download`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('emp_token')}` }
             });
             
@@ -78,7 +106,7 @@ const PayslipManagement = () => {
             const monthIndex = parseInt(p.month, 10) - 1;
             const monthName = monthNames[monthIndex] || p.month;
             
-            const safeName = (p.employeeName || 'Statement').replace(/\s+/g, '_');
+            const safeName = (p.employee_name || 'Statement').replace(/\s+/g, '_');
             const filename = `${safeName}_${monthName}_${p.year}_Payslip.pdf`;
             
             const a = document.createElement('a');
@@ -100,8 +128,8 @@ const PayslipManagement = () => {
     };
 
     const filteredPayslips = payslips.filter(p => 
-        p.employeeName?.toLowerCase().includes(filter.toLowerCase()) ||
-        p.userId.toString().includes(filter)
+        p.employee_name?.toLowerCase().includes(filter.toLowerCase()) ||
+        p.employee_id.toString().includes(filter)
     );
 
     return (
@@ -114,6 +142,9 @@ const PayslipManagement = () => {
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button className="btn btn-outline" onClick={exportToPDF} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Download size={18} /> Export PDF Report
+                    </button>
+                    <button className="btn btn-primary" onClick={handleGeneratePayslips} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <FileText size={18} /> Generate Monthly Payslips
                     </button>
                     <div className="search-box" style={{ position: 'relative' }}>
                         <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
@@ -145,11 +176,11 @@ const PayslipManagement = () => {
                                 <td style={{ padding: '1.25rem 1.5rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                                         <div style={{ width: '32px', height: '32px', background: '#eef2ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#4f46e5' }}>
-                                            {p.employeeName?.charAt(0)}
+                                            {p.employee_name?.charAt(0)}
                                         </div>
                                         <div>
-                                            <div style={{ fontWeight: 600 }}>{p.employeeName}</div>
-                                            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>EMP-{p.userId.toString().padStart(3, '0')}</div>
+                                            <div style={{ fontWeight: 600 }}>{p.employee_name}</div>
+                                            <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>EMP-{p.employee_id.toString().padStart(3, '0')}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -157,10 +188,10 @@ const PayslipManagement = () => {
                                     <div style={{ fontSize: '0.875rem', fontWeight: 500 }}>{p.month} / {p.year}</div>
                                 </td>
                                 <td style={{ padding: '1.25rem 1.5rem', fontWeight: 700, color: '#4f46e5' }}>
-                                    ${p.netSalary?.toLocaleString()}
+                                    ${p.net_salary?.toLocaleString()}
                                 </td>
                                 <td style={{ padding: '1.25rem 1.5rem', fontSize: '0.75rem', color: '#64748b' }}>
-                                    {new Date(p.generatedAt).toLocaleDateString()}
+                                    {new Date(p.created_at).toLocaleDateString()}
                                 </td>
                                 <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                     <button 

@@ -1,7 +1,7 @@
 // Frontend ↔ Turso Backend Integration
 const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 const API_BASE = `${BASE}/api`;
-const AUTH_BASE = `${API_BASE}/auth`;
+const AUTH_BASE = `${BASE}/api/auth`;
 
 const tryFetch = async (url, options = {}) => {
   try {

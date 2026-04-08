@@ -15,13 +15,32 @@ import {
   ChevronRight,
   Menu,
   X,
-  Zap as ZapIcon
+  Zap as ZapIcon,
+  Smartphone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DetailModal from './DetailModal';
 import { Calendar as CalendarIcon, Mail, Shield, Briefcase as DeptIcon, Hash } from 'lucide-react';
 
 const Sidebar = ({ user, isOpen, setIsOpen }) => {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforePrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforePrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforePrompt);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') setDeferredPrompt(null);
+  };
+
   const role = user.role?.toLowerCase() || '';
   const menuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['employee', 'manager', 'admin'] },
@@ -108,6 +127,18 @@ const Sidebar = ({ user, isOpen, setIsOpen }) => {
             </div>
           </div>
         </div>
+
+        {deferredPrompt && (
+          <div className="px-6 mb-8">
+            <button 
+              onClick={handleInstall}
+              className="w-full flex items-center justify-center gap-3 py-4 bg-indigo-600 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95"
+            >
+              <Smartphone size={18} />
+              INSTALL APP
+            </button>
+          </div>
+        )}
       </motion.aside>
     </>
   );

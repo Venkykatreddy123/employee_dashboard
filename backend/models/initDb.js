@@ -60,26 +60,30 @@ const initializeDatabase = async () => {
       createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (userId) REFERENCES USERS(id)
     )`,
-    `CREATE TABLE IF NOT EXISTS PAYSLIPS (
+    `CREATE TABLE IF NOT EXISTS payslips (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      userId INTEGER NOT NULL,
+      employee_id INTEGER NOT NULL,
+      employee_name TEXT NOT NULL,
+      department TEXT,
+      designation TEXT,
       month TEXT NOT NULL,
       year TEXT NOT NULL,
-      baseSalary REAL NOT NULL,
-      bonus REAL DEFAULT 0,
+      basic_salary REAL NOT NULL,
       allowances REAL DEFAULT 0,
+      bonuses REAL DEFAULT 0,
       deductions REAL DEFAULT 0,
-      netSalary REAL NOT NULL,
-      generatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (userId) REFERENCES USERS(id)
+      net_salary REAL NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (employee_id) REFERENCES USERS(id)
     )`
   ];
 
   try {
-    await executeQuery('DROP TABLE IF EXISTS salaries');
-    await executeQuery('DROP TABLE IF EXISTS SALARIES');
-    await executeQuery('DROP TABLE IF EXISTS payslips'); 
-    await executeQuery('DROP TABLE IF EXISTS PAYSLIPS'); 
+    // STOP DROPPING TABLES ON EVERY BOOT!
+    // await executeQuery('DROP TABLE IF EXISTS salaries');
+    // await executeQuery('DROP TABLE IF EXISTS SALARIES');
+    // await executeQuery('DROP TABLE IF EXISTS payslips'); 
+    // await executeQuery('DROP TABLE IF EXISTS PAYSLIPS'); 
     
     for (const query of schemaQueries) {
       await executeQuery(query);
@@ -121,13 +125,13 @@ const initializeDatabase = async () => {
       console.log(`✅ System verified: Turso database already holds ${count} valid users.`);
     }
 
-    // Auto-generate payslips if PAYSLIPS is empty
-    const payslipsCount = await executeQuery('SELECT COUNT(*) as count FROM PAYSLIPS');
+    // Auto-generate payslips if payslips is empty
+    const payslipsCount = await executeQuery('SELECT COUNT(*) as count FROM payslips');
     const pCount = typeof payslipsCount.rows[0].count === 'bigint' ? Number(payslipsCount.rows[0].count) : payslipsCount.rows[0].count;
 
     if (pCount === 0 && count > 0) {
-      console.log('🌱 PAYSLIPS table is empty. Generating sample salaries and payslips for all users...');
-      const allUsers = await executeQuery('SELECT id, name, role FROM USERS');
+      console.log('🌱 payslips table is empty. Generating sample salaries and payslips for all users...');
+      const allUsers = await executeQuery('SELECT id, name, role, department, designation FROM USERS');
       
       const currentMonthNum = new Date().getMonth() + 1;
       const currentMonth = currentMonthNum.toString().padStart(2, '0');
@@ -148,8 +152,8 @@ const initializeDatabase = async () => {
         );
 
         await executeQuery(
-          'INSERT INTO PAYSLIPS (userId, month, year, baseSalary, bonus, allowances, deductions, netSalary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [user.id, currentMonth, currentYear, baseSalary, bonus, allowances, deductions, netSalary]
+          'INSERT INTO payslips (employee_id, employee_name, department, designation, month, year, basic_salary, allowances, bonuses, deductions, net_salary) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [user.id, user.name, user.department || 'N/A', user.designation || 'N/A', currentMonth, currentYear, baseSalary, allowances, bonus, deductions, netSalary]
         );
       }
       console.log('✅ Sample salaries and payslips generated successfully.');

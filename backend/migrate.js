@@ -37,6 +37,39 @@ const migrate = async () => {
             console.log('designation in USERS already exists or failed:', e.message);
         }
 
+        // Create 'payslips' table as requested
+        try {
+            // Check if table has 'employee_id' -- if not, drop and recreate properly
+            const tableCheck = await executeQuery("PRAGMA table_info(payslips)");
+            const hasEmployeeId = tableCheck.rows.some(r => r.name === 'employee_id');
+
+            if (!hasEmployeeId && tableCheck.rows.length > 0) {
+                console.log('Old payslips table version found. Dropping to recreate with new schema.');
+                await executeQuery('DROP TABLE payslips');
+            }
+
+            await executeQuery(`
+                CREATE TABLE IF NOT EXISTS payslips (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    employee_id INTEGER NOT NULL,
+                    employee_name TEXT NOT NULL,
+                    department TEXT,
+                    designation TEXT,
+                    month TEXT NOT NULL,
+                    year TEXT NOT NULL,
+                    basic_salary REAL NOT NULL,
+                    allowances REAL DEFAULT 0,
+                    bonuses REAL DEFAULT 0,
+                    deductions REAL DEFAULT 0,
+                    net_salary REAL NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+            console.log('Verified/Created payslips table with correct schema');
+        } catch (e) {
+            console.log('Error managing payslips table:', e.message);
+        }
+
         console.log('Migration completed.');
     } catch (err) {
         console.error('Migration failed:', err);

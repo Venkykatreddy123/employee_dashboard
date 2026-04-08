@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Download, Users, FileSpreadsheet } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { API_BASE } from '@/services/apiClient';
 
 const TeamPayslips = () => {
     const { user } = useAuth();
@@ -11,7 +12,7 @@ const TeamPayslips = () => {
 
     const fetchPayslips = async () => {
         try {
-            const res = await fetch(`/api/team-payslips`, {
+            const res = await fetch(`${API_BASE}/team-payslips`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('emp_token')}` }
             });
             const data = await res.json();
@@ -45,12 +46,12 @@ const TeamPayslips = () => {
 
         // Prep table data
         const tableData = payslips.map(p => [
-            p.employeeName,
+            p.employee_name,
             p.month,
-            `$${p.baseSalary?.toLocaleString()}`,
-            `$${p.bonus?.toLocaleString() || 0}`,
+            `$${p.basic_salary?.toLocaleString()}`,
+            `$${p.bonuses?.toLocaleString() || 0}`,
             `$${p.deductions?.toLocaleString() || 0}`,
-            `$${p.netSalary?.toLocaleString()}`
+            `$${p.net_salary?.toLocaleString()}`
         ]);
 
         // Generate table
@@ -70,7 +71,7 @@ const TeamPayslips = () => {
 
     const downloadPDF = async (p) => {
       try {
-          const res = await fetch(`/api/payslips/${p.id}/pdf`, {
+          const res = await fetch(`${API_BASE}/payslips/${p.id}/pdf`, {
               headers: { 'Authorization': `Bearer ${localStorage.getItem('emp_token')}` }
           });
           
@@ -88,7 +89,7 @@ const TeamPayslips = () => {
           const monthIndex = parseInt(p.month, 10) - 1;
           const monthName = monthNames[monthIndex] || p.month;
           
-          const safeName = (p.employeeName || 'Employee').replace(/\s+/g, '_');
+          const safeName = (p.employee_name || 'Employee').replace(/\s+/g, '_');
           const filename = `${safeName}_${monthName}_${p.year}_Payslip.pdf`;
           
           const a = document.createElement('a');
@@ -139,11 +140,11 @@ const TeamPayslips = () => {
                         {payslips.map(s => (
                             <tr key={s.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                 <td style={{ padding: '1.25rem 1.5rem' }}>
-                                    <div style={{ fontWeight: 600 }}>{s.employeeName}</div>
+                                    <div style={{ fontWeight: 600 }}>{s.employee_name}</div>
                                 </td>
                                 <td style={{ padding: '1.25rem 1.5rem' }}>{s.month}</td>
-                                <td style={{ padding: '1.25rem 1.5rem' }}>${s.baseSalary?.toLocaleString()}</td>
-                                <td style={{ padding: '1.25rem 1.5rem', fontWeight: 700, color: '#4f46e5' }}>${s.netSalary.toLocaleString()}</td>
+                                <td style={{ padding: '1.25rem 1.5rem' }}>${s.basic_salary?.toLocaleString()}</td>
+                                <td style={{ padding: '1.25rem 1.5rem', fontWeight: 700, color: '#4f46e5' }}>${s.net_salary.toLocaleString()}</td>
                                 <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
                                     <button 
                                         onClick={() => downloadPDF(s)}

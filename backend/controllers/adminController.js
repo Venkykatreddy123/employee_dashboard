@@ -90,33 +90,51 @@ const getAllData = async (req, res) => {
   }
 };
 
-// Generate Payslips from Salary Records
+// Generate Payslips for current month
 const generatePayslips = async (req, res) => {
   try {
-    // 1. Fetch all salary records
-    const salaries = await executeQuery('SELECT * FROM SALARIES');
-    
-    if (salaries.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'No salary records found' });
-    }
+    const currentDate = new Date();
+    const month = (currentDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = currentDate.getFullYear().toString();
+
+    // Fetch all employees
+    const employeesResult = await executeQuery('SELECT id, name, department, designation FROM USERS');
+    const employees = employeesResult.rows;
 
     let generatedCount = 0;
 
-    for (const salary of salaries.rows) {
-      // Check if a payslip already exists for userId + month + year
+    for (const emp of employees) {
+      // Check if payslip already exists
       const existing = await executeQuery(
-        'SELECT id FROM PAYSLIPS WHERE userId = ? AND month = ? AND year = ?', 
-        [salary.userId, salary.month, salary.year]
+        'SELECT id FROM payslips WHERE employee_id = ? AND month = ? AND year = ?',
+        [emp.id, month, year]
       );
-      
-      if (existing.rows.length === 0) {
-        // Calculate fields: netSalary = baseSalary + bonus + allowances - deductions
-        const netSalary = salary.baseSalary + (salary.bonus || 0) + (salary.allowances || 0) - (salary.deductions || 0);
 
-        // Insert into PAYSLIPS table
+      if (existing.rows.length === 0) {
+        // Find salary
+        const salaryResult = await executeQuery(
+          'SELECT * FROM SALARIES WHERE userId = ? ORDER BY year DESC, month DESC LIMIT 1',
+          [emp.id]
+        );
+        const salary = salaryResult.rows[0];
+
+        const basic_salary = salary ? salary.baseSalary : 0;
+        const allowances = salary ? (salary.allowances || 0) : 0;
+        const bonuses = salary ? (salary.bonus || 0) : 0;
+        const deductions = salary ? (salary.deductions || 0) : 0;
+        const net_salary = basic_salary + allowances + bonuses - deductions;
+
         await executeQuery(
-          'INSERT INTO PAYSLIPS (userId, month, year, baseSalary, bonus, allowances, deductions, netSalary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [salary.userId, salary.month, salary.year, salary.baseSalary, salary.bonus || 0, salary.allowances || 0, salary.deductions || 0, netSalary]
+          `INSERT INTO payslips (
+            employee_id, employee_name, department, designation, 
+            month, year, basic_salary, allowances, bonuses, 
+            deductions, net_salary
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            emp.id, emp.name, emp.department || 'Engineering', emp.designation || 'Employee',
+            month, year, basic_salary, allowances, bonuses,
+            deductions, net_salary
+          ]
         );
         generatedCount++;
       }
@@ -130,33 +148,13 @@ const generatePayslips = async (req, res) => {
 };
 
 /**
- * Admin view all payslips with auto-sync feature
+ * Admin view all payslips
  */
 const getAllPayslips = async (req, res) => {
   try {
-    // 1. AUTO-SYNC: Generate missing payslips for all salary records before listing
-    const salaries = await executeQuery('SELECT * FROM SALARIES');
-    for (const salary of salaries.rows) {
-      const existing = await executeQuery(
-        'SELECT id FROM PAYSLIPS WHERE userId = ? AND month = ? AND year = ?', 
-        [salary.userId, salary.month, salary.year]
-      );
-      
-      if (existing.rows.length === 0) {
-        const netSalary = salary.baseSalary + (salary.bonus || 0) + (salary.allowances || 0) - (salary.deductions || 0);
-        await executeQuery(
-          'INSERT INTO PAYSLIPS (userId, month, year, baseSalary, bonus, allowances, deductions, netSalary) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [salary.userId, salary.month, salary.year, salary.baseSalary, salary.bonus || 0, salary.allowances || 0, salary.deductions || 0, netSalary]
-        );
-      }
-    }
-
-    // 2. FETCH LIST:
     const result = await executeQuery(`
-      SELECT p.*, u.name as employeeName 
-      FROM PAYSLIPS p
-      JOIN USERS u ON p.userId = u.id
-      ORDER BY p.year DESC, p.month DESC, p.generatedAt DESC
+      SELECT * FROM payslips
+      ORDER BY year DESC, month DESC, created_at DESC
     `);
     res.json({ success: true, payslips: result.rows });
   } catch (err) {
