@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../services/api'; 
 import { 
-  LogIn, LogOut, Clock, Calendar, History, Activity, Timer, ChevronRight, RefreshCw, User, Search, Filter, ShieldCheck, XCircle, AlertCircle, RotateCcw
+  LogIn, LogOut, Clock, Calendar, History, Activity, Timer, ChevronRight, RefreshCw, User, Search, Filter, ShieldCheck, XCircle, AlertCircle, RotateCcw, TrendingUp, Users
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -22,18 +22,13 @@ const Attendance = () => {
 
   const fetchData = useCallback(async (isClear = false) => {
     try {
-      console.log('📡 [Attendance] Initializing Data Acquisition Lifecycle...');
       setLoading(true);
-      
       const filtersToUse = isClear ? { date: '', employee: '' } : adminFilters;
 
       const [todayRes, historyRes] = await Promise.all([
         api.get('/api/attendance/me'),
         api.get('/api/attendance/history')
       ]);
-
-      console.log('📦 [Attendance] Today Pulse Logic:', todayRes.data);
-      console.log('📦 [Attendance] Historical Records:', historyRes.data);
 
       if (todayRes.data.success) {
         setTodayRecord(todayRes.data.data);
@@ -49,17 +44,14 @@ const Attendance = () => {
         if (filtersToUse.date) queryParams.append('date', filtersToUse.date);
         if (filtersToUse.employee) queryParams.append('emp_id', filtersToUse.employee);
         
-        console.log('🛠️ [Attendance] Admin Telemetry Query:', queryParams.toString());
         const allRes = await api.get(`/api/attendance/all?${queryParams.toString()}`);
-        console.log('📦 [Attendance] Global Personnel Data:', allRes.data);
-        
         if (allRes.data.success) {
           setAllAttendance(allRes.data.data);
         }
       }
     } catch (err) {
-      console.error('🔥 [Attendance] Sync Failure:', err.message);
-      toast.error('Identity sync error. Database cloud tunnel failed.');
+      console.error('Attendance Sync Failure:', err.message);
+      toast.error('Failed to sync attendance data.');
     } finally {
       setLoading(false);
     }
@@ -76,19 +68,14 @@ const Attendance = () => {
 
   const handleAction = async (action) => {
     try {
-      console.log(`🚀 [Attendance] Triggering Lifecycle Action: ${action}`);
       setBtnLoading(true);
       const endpoint = action === 'check-in' ? '/api/attendance/checkin' : '/api/attendance/checkout';
       const res = await api.post(endpoint);
       
-      console.log('✅ [Attendance] Action Successful:', res.data);
       toast.success(res.data.message);
-      
-      // Mandatory registry reload
-      window.location.reload(); // Hard reload or wait and fetch
+      setTimeout(() => window.location.reload(), 500);
     } catch (err) {
-      const msg = err.response?.data?.message || 'Operational handshake failed';
-      console.error('❌ [Attendance] Action Rejected:', msg);
+      const msg = err.response?.data?.message || 'Action failed';
       toast.error(msg);
     } finally {
       setBtnLoading(false);
@@ -100,263 +87,273 @@ const Attendance = () => {
     fetchData(true);
   };
 
-  if (!user) return <div className="p-20 text-center font-black animate-pulse text-gray-300 text-3xl italic">Synchronizing Primary Node...</div>;
+  if (!user) return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="flex flex-col items-center gap-4">
+        <RefreshCw className="animate-spin text-indigo-600" size={32} />
+        <p className="text-slate-500 font-medium tracking-wide">Initializing secure session...</p>
+      </div>
+    </div>
+  );
 
   const isCheckedIn = currentStatus === 'Checked In';
   const isCheckedOut = currentStatus === 'Checked Out';
 
   return (
-    <div className="space-y-12 max-w-7xl mx-auto pb-16 animate-fade-in text-gray-900 px-4 md:px-0">
-      {/* Dynamic Header actions */}
-      <motion.div 
-        initial={{ y: -20, opacity: 0 }} 
-        animate={{ y: 0, opacity: 1 }}
-        className="flex flex-col lg:flex-row justify-between items-start lg:items-center p-12 bg-white rounded-[60px] border-2 border-slate-50 shadow-2xl relative overflow-hidden group"
-      >
-        <div className="absolute inset-x-0 bottom-0 h-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 shadow-[0_5px_20px_rgba(37,99,235,0.4)]"></div>
-        <div className="relative z-10 space-y-4">
-          <h1 className="text-6xl font-black text-slate-900 tracking-tighter italic uppercase leading-none">Security Loop</h1>
-          <p className="text-slate-400 font-bold uppercase tracking-[0.5em] text-[11px] flex items-center gap-4">
-             <div className={`w-3.5 h-3.5 rounded-full ${isCheckedIn ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300 shadow-inner'}`} />
-             Registry Lifecycle Activity &bull; Candidate: <span className="text-blue-600 font-black">{user.name} ({user.emp_id})</span>
-          </p>
+    <div className="max-w-[1600px] mx-auto p-4 md:p-8 space-y-8 animate-in fade-in duration-700">
+      {/* Professional Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-200">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight text-left">Attendance & Time Tracking</h1>
+          <p className="text-slate-500 mt-1 font-medium text-left">Manage your daily work hours and check historical records.</p>
         </div>
-        
-        <div className="flex flex-col sm:flex-row items-center gap-8 mt-12 lg:mt-0 relative z-10 w-full lg:w-auto">
-           <div className={`px-14 py-8 rounded-[40px] flex flex-col items-center justify-center min-w-[280px] border shadow-inner transition-all w-full sm:w-auto
-             ${isCheckedIn ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-               isCheckedOut ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-slate-50 text-slate-300 border-slate-100'}`}>
-              <span className="text-[11px] uppercase font-black tracking-[0.4em] mb-3 opacity-40 italic">Registry Status</span>
-              <span className="text-4xl font-black uppercase tracking-tighter italic leading-none">{currentStatus}</span>
-           </div>
-           
-           <div className="flex flex-wrap gap-5 w-full sm:w-auto justify-center">
+        <div className="flex items-center gap-3 bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm">
+          <div className={`w-2.5 h-2.5 rounded-full ml-2 ${isCheckedIn ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+          <span className="text-sm font-semibold text-slate-700 mr-2 uppercase tracking-wider">{currentStatus}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8 text-left">
+        {/* Main Content Area */}
+        <div className="xl:col-span-3 space-y-8">
+          
+          {/* Quick Actions & Today's Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <motion.div 
+              whileHover={{ y: -4 }}
+              className="md:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm p-8 flex flex-col md:flex-row items-center justify-between gap-8"
+            >
+              <div className="flex items-center gap-6">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${isCheckedIn ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
+                   <Clock size={32} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900 leading-none">Today's Presence</h3>
+                  <p className="text-slate-500 text-sm font-medium mt-2">Logged in as <span className="text-indigo-600 font-bold">{user.name}</span></p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 w-full md:w-48">
                 <button 
                   disabled={isCheckedIn || isCheckedOut || btnLoading}
                   onClick={() => handleAction('check-in')}
-                  className={`w-full sm:w-auto p-7 px-12 rounded-[35px] shadow-3xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-5
-                    ${(isCheckedIn || isCheckedOut) ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none border border-slate-200 opacity-60' : 'bg-blue-600 text-white shadow-blue-200 hover:bg-blue-700'}`}
+                  className={`w-full px-8 py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 transition-all
+                    ${(isCheckedIn || isCheckedOut) 
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' 
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 active:scale-95'}`}
                 >
-                  <LogIn size={32} strokeWidth={3} />
-                  <span className="text-xl font-black uppercase tracking-[0.2em] leading-none">Arrival</span>
+                  <LogIn size={20} />
+                  Check In
                 </button>
 
                 <button 
                   disabled={!isCheckedIn || btnLoading}
                   onClick={() => handleAction('check-out')}
-                  className={`w-full sm:w-auto p-7 px-12 rounded-[35px] shadow-3xl transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-5
-                    ${(!isCheckedIn) ? 'bg-slate-100 text-slate-300 cursor-not-allowed shadow-none border border-slate-200 opacity-60' : 'bg-slate-900 text-white shadow-slate-200 hover:bg-black'}`}
+                  className={`w-full px-8 py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 transition-all
+                    ${(!isCheckedIn) 
+                      ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' 
+                      : 'bg-slate-900 text-white hover:bg-black shadow-lg shadow-slate-200 active:scale-95'}`}
                 >
-                  <LogOut size={32} strokeWidth={3} />
-                  <span className="text-xl font-black uppercase tracking-[0.2em] leading-none">Departure</span>
+                  <LogOut size={20} />
+                  Check Out
                 </button>
-           </div>
-        </div>
-      </motion.div>
-
-      {/* Primary Registry Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-16">
-        <div className="lg:col-span-2 space-y-12">
-           <motion.div 
-             initial={{ opacity: 0, x: -30 }}
-             animate={{ opacity: 1, x: 0 }}
-             transition={{ delay: 0.1 }}
-             className="bg-white rounded-[60px] border border-slate-100 shadow-3xl overflow-hidden min-h-[700px] flex flex-col"
-           >
-              <div className="p-14 border-b border-slate-50 flex flex-col sm:flex-row items-center justify-between bg-blue-50/10 gap-10">
-                 <div className="flex items-center gap-10">
-                    <div className="w-24 h-24 bg-blue-600 text-white rounded-[40px] flex items-center justify-center shadow-4xl shadow-blue-200"><History size={48} /></div>
-                    <div>
-                       <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic leading-none select-none">Registry Audit Log</h2>
-                       <p className="text-[12px] font-black text-slate-400 tracking-[0.5em] uppercase mt-4 italic">{canSeeAll ? 'Enterprise Multi-Node History Telemetry' : 'Personal Lifecycle Activity Stream'}</p>
-                    </div>
-                 </div>
-                 <div className="flex gap-4">
-                   <button onClick={clearFilters} className="p-5 bg-slate-50 text-slate-400 rounded-3xl border border-slate-100 hover:text-indigo-600 transition-all shadow-inner group" title="Clear All Filters"><RotateCcw size={28} className="group-active:rotate-180 transition-transform" /></button>
-                   <button onClick={() => fetchData()} className="p-5 bg-white text-slate-400 rounded-3xl border border-slate-100 hover:text-blue-600 transition-all shadow-sm"><RefreshCw size={28} className={loading ? 'animate-spin' : ''} /></button>
-                 </div>
               </div>
+            </motion.div>
 
-              <div className="p-12 flex-1">
-                 {canSeeAll ? (
-                   <div className="space-y-12">
-                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 bg-slate-50/40 p-10 rounded-[50px] border border-slate-100/50">
-                        <div className="space-y-3">
-                           <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Audit Timestamp</label>
-                           <input type="date" value={adminFilters.date} onChange={e => setAdminFilters(prev => ({...prev, date: e.target.value}))} className="w-full p-6 bg-white border border-slate-100 rounded-[30px] font-black focus:border-blue-600 outline-none shadow-sm text-md font-mono" />
-                        </div>
-                        <div className="space-y-3 sm:col-span-2">
-                           <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest ml-1 italic">Identify Target (ID or Name)</label>
-                           <div className="relative">
-                              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={28} />
-                              <input placeholder="Query emp_id or global name..." value={adminFilters.employee} onChange={e => setAdminFilters(prev => ({...prev, employee: e.target.value}))} className="w-full pl-16 p-6 bg-white border border-slate-100 rounded-[30px] font-black focus:border-blue-600 outline-none shadow-sm text-md placeholder:font-serif italic" />
-                           </div>
-                        </div>
-                     </div>
-
-                     <div className="overflow-x-auto pb-10">
-                       <table className="w-full text-left">
-                          <thead>
-                             <tr className="text-[13px] font-black text-slate-300 uppercase tracking-[0.4em] border-b-2 border-slate-50">
-                                <th className="pb-10 px-8 italic">Personnel</th>
-                                <th className="pb-10 px-8 italic">Audit-Date</th>
-                                <th className="pb-10 px-8 italic text-blue-600">Cycle-IN</th>
-                                <th className="pb-10 px-8 italic text-red-500">Cycle-OUT</th>
-                                <th className="pb-10 px-8 text-right italic text-indigo-500 font-serif">Utilization</th>
-                                <th className="pb-10 px-8 text-right italic">Status</th>
-                             </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-50">
-                             {allAttendance.length > 0 ? allAttendance.map((record) => (
-                               <tr key={record.id} className="group hover:bg-blue-50/30 transition-all border-l-[10px] border-transparent hover:border-blue-600">
-                                  <td className="py-10 px-8">
-                                     <div className="flex items-center gap-8">
-                                        <div className="relative">
-                                           <div className="w-16 h-16 rounded-[25px] bg-slate-50 border-2 border-white flex items-center justify-center font-black text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all text-xl shadow-inner font-serif italic">
-                                              {record.employee_name ? record.employee_name[0] : '?'}
-                                           </div>
-                                           {record.status === 'Checked In' && (
-                                              <div className="absolute -bottom-1.5 -right-1.5 w-7 h-7 bg-emerald-500 rounded-full border-4 border-white animate-pulse shadow-2xl ring-4 ring-emerald-500/10" />
-                                           )}
-                                        </div>
-                                        <div>
-                                           <p className="font-black text-slate-900 text-lg whitespace-nowrap leading-none mb-3 italic uppercase tracking-tighter">{record.employee_name || 'Personnel'}</p>
-                                           <p className="text-[11px] font-bold text-blue-500 uppercase tracking-[0.2em] font-mono select-all bg-blue-50/50 px-2 py-0.5 rounded-lg inline-block transition-all group-hover:bg-blue-100">{record.employee_id}</p>
-                                        </div>
-                                     </div>
-                                  </td>
-                                  <td className="py-10 px-8 font-black text-slate-400 text-sm italic font-mono">{record.date}</td>
-                                  <td className="py-10 px-8 font-black text-slate-900 text-lg font-mono tracking-tight">{record.check_in_time || '--:--'}</td>
-                                  <td className="py-10 px-8 font-black text-slate-900 text-lg font-mono tracking-tight">{record.check_out_time || '--:--'}</td>
-                                  <td className="py-10 px-8 text-right">
-                                     <span className="px-5 py-2 bg-slate-900 rounded-2xl text-[11px] font-black text-white italic shadow-lg shadow-slate-300">{record.total_hours ? parseFloat(record.total_hours).toFixed(2) : '0.00'}h</span>
-                                  </td>
-                                  <td className="py-10 px-8 text-right">
-                                     <span className={`px-6 py-3 rounded-full text-[11px] font-black uppercase tracking-widest border-2 transition-all ${
-                                       record.status === 'Checked In' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 shadow-[0_0_15px_rgba(16,185,129,0.2)]' :
-                                       record.status === 'Checked Out' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                       'bg-slate-50 text-slate-400 border-slate-100 opacity-60'
-                                     }`}>
-                                        {record.status}
-                                     </span>
-                                  </td>
-                               </tr>
-                             )) : (
-                               <tr><td colSpan="6" className="py-48 text-center text-slate-200 font-black uppercase tracking-[2em] italic text-3xl opacity-20 select-none font-serif">Registry Audit Empty</td></tr>
-                             )}
-                          </tbody>
-                       </table>
-                     </div>
-                   </div>
-                 ) : (
-                   <div className="space-y-12">
-                      {history.length > 0 ? history.map((record, i) => (
-                        <div key={i} className="bg-white p-12 rounded-[55px] border-2 border-slate-50 hover:shadow-4xl hover:-translate-y-3 transition-all group relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-16 border-l-[15px] border-transparent hover:border-indigo-600 bg-gradient-to-br from-white to-slate-50/50">
-                           <div className="flex items-center gap-12">
-                              <div className="w-24 h-24 bg-slate-100 rounded-[35px] border-4 border-white shadow-2xl flex flex-col items-center justify-center group-hover:bg-indigo-600 transition-all scale-100 group-hover:scale-110">
-                                 <span className="text-[12px] font-black text-slate-400 uppercase tracking-tighter group-hover:text-indigo-100 transition-colors italic">Audit</span>
-                                 <span className="text-3xl font-black text-slate-900 tracking-tighter group-hover:text-white transition-colors font-serif">{record.date.split('-')[2]}</span>
-                              </div>
-                              <div>
-                                 <h3 className="text-3xl font-black text-slate-900 uppercase tracking-tighter leading-none italic font-serif">{new Date(record.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h3>
-                                 <div className="flex items-center gap-6 mt-6">
-                                    <Clock size={20} className="text-slate-200" />
-                                    <p className="text-[12px] font-black text-slate-300 uppercase tracking-[0.3em] leading-none select-all">Secure_Record_Index:: {record.id}</p>
-                                 </div>
-                              </div>
-                           </div>
-                           
-                           <div className="flex flex-wrap gap-16 items-center justify-center">
-                              <div className="text-center group/time">
-                                 <p className="text-[12px] font-black text-slate-300 uppercase tracking-[0.3em] mb-3 group-hover/time:text-blue-500 transition-colors italic">Pulse-In</p>
-                                 <p className="text-3xl font-black text-slate-900 tracking-tighter font-mono">{record.check_in_time || '--:--'}</p>
-                              </div>
-                              <div className="text-center group/time">
-                                 <p className="text-[12px] font-black text-slate-300 uppercase tracking-[0.3em] mb-3 group-hover/time:text-red-500 transition-colors italic">Pulse-Out</p>
-                                 <p className="text-3xl font-black text-slate-900 tracking-tighter font-mono">{record.check_out_time || '--:--'}</p>
-                              </div>
-                              <div className="text-center">
-                                 <p className="text-[12px] font-black text-slate-300 uppercase tracking-[0.3em] mb-3 italic">Shift-Net</p>
-                                 <p className="text-3xl font-black text-indigo-600 tracking-tighter underline underline-offset-[12px] decoration-indigo-100 decoration-[6px] italic">{record.total_hours ? parseFloat(record.total_hours).toFixed(2) : '0.00'}h</p>
-                              </div>
-                              <div className="bg-slate-100 px-10 py-7 rounded-[35px] border-2 border-white shadow-inner group-hover:bg-white transition-all min-w-[200px] text-center border-t-8 border-t-transparent group-hover:border-t-indigo-300 flex flex-col justify-center">
-                                 <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 italic leading-none">Security Cycle</p>
-                                 <p className="text-md font-black text-slate-900 tracking-[0.3em] uppercase italic leading-none">{record.status}</p>
-                              </div>
-                           </div>
-                        </div>
-                      )) : (
-                        <div className="h-full flex flex-col items-center justify-center text-center opacity-30 select-none py-40 grayscale space-y-12 bg-slate-50/20 rounded-[50px] border-2 border-dashed border-slate-100">
-                           <XCircle size={160} className="text-slate-200 group-hover:rotate-12 transition-transform duration-700" />
-                           <div className="space-y-6">
-                             <h3 className="text-5xl font-black text-slate-300 uppercase tracking-[1em] italic select-none">No Attendance Found</h3>
-                             <p className="text-[13px] font-bold text-slate-400 uppercase tracking-[0.5em] underline decoration-indigo-500 underline-offset-[16px] decoration-[5px] opacity-60 font-serif">Neural Registry Active for Global Node {user.emp_id}</p>
-                           </div>
-                        </div>
-                      )}
-                   </div>
-                 )}
+            <motion.div 
+              whileHover={{ y: -4 }}
+              className="bg-indigo-600 rounded-3xl border border-indigo-500 shadow-xl p-8 text-white flex flex-col justify-between"
+            >
+              <div className="flex justify-between items-start">
+                <p className="text-indigo-100 font-semibold text-sm uppercase tracking-widest">Shift Progress</p>
+                <TrendingUp size={20} className="text-indigo-200 opacity-60" />
               </div>
-           </motion.div>
+              <div className="mt-4">
+                <h4 className="text-4xl font-bold tracking-tighter">
+                  {todayRecord?.total_hours ? parseFloat(todayRecord.total_hours).toFixed(1) : '0.0'}
+                  <span className="text-xl ml-1 opacity-60 font-medium">Hrs</span>
+                </h4>
+                <p className="text-indigo-100/70 text-sm mt-1 font-medium">Total recorded for today</p>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Records Table / List */}
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden min-h-[500px] flex flex-col">
+            <div className="px-8 py-6 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500 border border-slate-100"><History size={20} /></div>
+                <h2 className="text-xl font-bold text-slate-900">{canSeeAll ? 'Team Attendance Log' : 'My Attendance History'}</h2>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {canSeeAll && (
+                  <button onClick={clearFilters} className="p-2.5 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl transition-all border border-slate-200" title="Reset Filters">
+                    <RotateCcw size={18} />
+                  </button>
+                )}
+                <button onClick={() => fetchData()} className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all border border-slate-200">
+                  <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                </button>
+              </div>
+            </div>
+
+            {canSeeAll && (
+              <div className="px-8 py-4 bg-slate-50/50 border-b border-slate-100">
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                  <div className="sm:col-span-5 relative group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors" size={18} />
+                    <input 
+                      placeholder="Search employee or ID..." 
+                      value={adminFilters.employee} 
+                      onChange={e => setAdminFilters(prev => ({...prev, employee: e.target.value}))} 
+                      className="w-full pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-4 focus:ring-indigo-100/50 focus:border-indigo-600 outline-none transition-all placeholder:text-slate-400" 
+                    />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <input 
+                      type="date" 
+                      value={adminFilters.date} 
+                      onChange={e => setAdminFilters(prev => ({...prev, date: e.target.value}))} 
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium focus:ring-4 focus:ring-indigo-100/50 focus:border-indigo-600 outline-none transition-all" 
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex-1 overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/50">
+                    <th className="px-8 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">Employee</th>
+                    <th className="px-8 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">Date</th>
+                    <th className="px-8 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">Clock In</th>
+                    <th className="px-8 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">Clock Out</th>
+                    <th className="px-8 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">Duration</th>
+                    <th className="px-8 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {(canSeeAll ? allAttendance : history).length > 0 ? (canSeeAll ? allAttendance : history).map((record, i) => (
+                    <tr key={record.id || i} className="hover:bg-slate-50/30 transition-colors group">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-600 border border-slate-200 flex items-center justify-center font-bold text-sm group-hover:bg-indigo-50 group-hover:text-indigo-600 group-hover:border-indigo-100 transition-colors">
+                            {record.employee_name ? record.employee_name[0] : (user.name[0])}
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-slate-900 leading-none">{record.employee_name || user.name}</p>
+                            <p className="text-[11px] font-semibold text-slate-400 mt-1.5 uppercase tracking-wider">{record.employee_id || user.emp_id}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5 text-sm font-medium text-slate-600">{record.date}</td>
+                      <td className="px-8 py-5">
+                         <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{record.check_in_time || '--:--'}</span>
+                      </td>
+                      <td className="px-8 py-5">
+                         <span className="text-xs font-bold text-slate-700 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200">{record.check_out_time || '--:--'}</span>
+                      </td>
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-2">
+                           <Timer size={14} className="text-indigo-400" />
+                           <span className="text-sm font-bold text-indigo-600">
+                             {record.total_hours ? parseFloat(record.total_hours).toFixed(2) : '0.00'}<small className="ml-0.5 opacity-60 font-medium tracking-normal text-xs uppercase">hrs</small>
+                           </span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5 text-right">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                          record.status === 'Checked In' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          record.status === 'Checked Out' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          'bg-slate-50 text-slate-500 border-slate-200'
+                        }`}>
+                          {record.status}
+                        </span>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="6" className="py-32 text-center text-slate-400">
+                        <div className="flex flex-col items-center gap-4 opacity-40">
+                          <Activity size={56} strokeWidth={1.5} />
+                          <p className="text-lg font-semibold tracking-tight">No attendance records found</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
 
-        {/* Global Statistics Panel */}
-        <div className="space-y-16">
-           <motion.div 
-             initial={{ opacity: 0, x: 30 }}
-             animate={{ opacity: 1, x: 0 }}
-             transition={{ delay: 0.2 }}
-             className="bg-slate-900 p-20 rounded-[80px] shadow-5xl text-white relative overflow-hidden group border-r-[35px] border-blue-600 border-l-[2px] border-white/5"
-           >
-              <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-[120px] group-hover:scale-150 transition-all duration-[2000ms] pointer-events-none"></div>
-              <div className="relative space-y-20">
-                 <div className="flex justify-between items-start">
-                    <h2 className="text-5xl font-black uppercase tracking-tighter italic leading-none text-white/90 font-serif">Lifecycle Audits</h2>
-                    <RotateCcw size={60} className="text-blue-500 animate-spin-slow opacity-60" />
-                 </div>
-                 
-                 <div className="space-y-24">
-                    <div className="text-center relative">
-                       <p className="text-slate-500 font-black uppercase tracking-[0.8em] text-[12px] mb-10 italic leading-none">Total Observed Handshakes</p>
-                       <p className="text-[200px] font-black tracking-tighter text-white drop-shadow-[0_40px_40px_rgba(37,99,235,0.6)] leading-none select-none italic font-serif">
-                          {canSeeAll ? allAttendance.length : history.length}
-                       </p>
-                    </div>
+        {/* Sidebar Statistics */}
+        <div className="space-y-8 text-left">
+          <motion.div 
+            whileHover={{ y: -4 }}
+            className="bg-slate-900 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden group"
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/30 transition-all duration-700" />
+            <div className="relative space-y-8">
+              <div className="flex items-center gap-3 text-indigo-300">
+                <Activity size={18} />
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Usage Summary</span>
+              </div>
+              
+              <div className="space-y-1">
+                <p className="text-5xl font-bold tracking-tight">
+                  {canSeeAll ? allAttendance.length : history.length}
+                </p>
+                <p className="text-slate-400 font-medium text-sm">Total entries processed</p>
+              </div>
 
-                    <div className="bg-white/5 p-16 rounded-[50px] border border-white/10 flex justify-between items-center group-hover:bg-white/10 transition-all cursor-crosshair group-hover:shadow-[0_20px_40px_rgba(0,0,0,0.3)]">
-                        <div className="space-y-6">
-                            <p className="text-[12px] font-black text-blue-500 uppercase tracking-[0.5em] italic">System Registry</p>
-                            <p className="text-4xl font-black tracking-tighter leading-none uppercase italic text-white/80 font-serif">Synchronized</p>
-                        </div>
-                        <div className="w-20 h-20 rounded-[35px] bg-blue-600 flex items-center justify-center shadow-4xl shadow-blue-500/50 group-hover:rotate-[20deg] transition-all"><ShieldCheck size={40} /></div>
-                    </div>
+              <div className="pt-6 border-t border-white/10 flex justify-between items-center">
+                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Network Status</span>
+                 <div className="flex items-center gap-2 text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-400/20">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Cloud Sync
                  </div>
               </div>
-           </motion.div>
-           
-           <motion.div 
-             initial={{ opacity: 0, x: 30 }}
-             animate={{ opacity: 1, x: 0 }}
-             transition={{ delay: 0.3 }}
-             className="bg-white p-20 rounded-[70px] border-2 border-slate-50 shadow-3xl flex flex-col items-center relative overflow-hidden text-center gap-14 group hover:shadow-emerald-100 transition-all duration-700"
-           >
-               <div className="w-40 h-40 bg-slate-50 rounded-[55px] flex items-center justify-center shadow-inner group-hover:bg-blue-600 group-hover:text-white transition-all scale-100 group-hover:scale-105 duration-500"><Activity size={90} className="animate-pulse opacity-80" /></div>
-               <div className="space-y-8">
-                 <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none font-serif">Neural Integrity</h2>
-                 <p className="text-[12px] font-black text-slate-300 leading-relaxed uppercase tracking-[0.5em] max-w-[320px] italic">Active cloud sync established for node <span className="text-indigo-600 select-none underline decoration-4 underline-offset-8">{user.emp_id}</span> via Global Turso Logic Grid</p>
+            </div>
+          </motion.div>
+
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 space-y-8">
+            <div className="flex items-center justify-between">
+               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Activity Insights</h3>
+               <TrendingUp size={16} className="text-indigo-600" />
+            </div>
+            
+            <div className="space-y-6">
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 border border-emerald-100">
+                     <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Arrival Rating</p>
+                     <p className="text-lg font-bold text-slate-900">94.2% <span className="text-[10px] text-emerald-600 ml-1 font-bold">+2.4%</span></p>
+                  </div>
                </div>
-               <div className="flex flex-wrap justify-center gap-6 group-hover:rotate-[-2deg] transition-all">
-                  <div className="px-8 py-4 bg-slate-900 rounded-3xl text-[11px] font-black uppercase tracking-widest text-white shadow-2xl border border-slate-800 italic">Audit-Level-0</div>
-                  <div className="px-8 py-4 bg-blue-600 rounded-3xl text-[11px] font-black uppercase tracking-widest text-white shadow-2xl shadow-blue-100 italic font-serif">AES-X-256</div>
+
+               <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 border border-indigo-100">
+                     <Users size={20} />
+                  </div>
+                  <div>
+                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Team Average</p>
+                     <p className="text-lg font-bold text-slate-900">8.4 <small className="text-slate-400 font-medium">Hrs/Day</small></p>
+                  </div>
                </div>
-           </motion.div>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100">
+               <button onClick={() => fetchData()} className="w-full py-3 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 border border-slate-200">
+                 <RefreshCw size={14} /> Refresh Terminal
+               </button>
+            </div>
+          </div>
         </div>
       </div>
-      
-      <style>{`
-        .animate-spin-slow { animation: spin 20s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
     </div>
   );
 };
