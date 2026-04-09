@@ -5,6 +5,10 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+import { FileOpener } from '@capacitor-community/file-opener';
 
 const Salary = () => {
   const { user } = useAuth();
@@ -61,9 +65,22 @@ const Salary = () => {
   };
 
   /**
+   * blobToBase64 - Strategic binary conversion logic
+   */
+  const blobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  /**
    * handleDownload - Secure PDF acquisition via Authorization Handshake
    */
   const handleDownload = async (salary) => {
+    const fileName = `Payslip_${salary.emp_id}_${salary.month}_${salary.year}.pdf`;
     const payslipUrl = `/api/salary/${salary.emp_id}/payslip/${salary.month}-${salary.year}`;
     toast.success(`Acquiring Production Payslip: ${salary.month} ${salary.year}`);
     
@@ -71,16 +88,49 @@ const Salary = () => {
        // Fetch PDF as blob with Authorization headers
        const response = await api.get(payslipUrl, { responseType: 'blob' });
        
-       // Create secure blob stream
-       const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-       const link = document.createElement('a');
-       link.href = blobUrl;
-       link.setAttribute('download', `Payslip_${salary.emp_id}_${salary.month}_${salary.year}.pdf`);
-       document.body.appendChild(link);
-       link.click();
-       link.remove();
-       window.URL.revokeObjectURL(blobUrl);
+       if (Capacitor.isNativePlatform()) {
+         console.log('📱 Native Platform Detected: Executing Filesystem Protocol');
+         const base64Data = await blobToBase64(response.data);
+         
+         // Persist to Strategic Document Directory
+         const savedFile = await Filesystem.writeFile({
+           path: fileName,
+           data: base64Data,
+           directory: Directory.Documents,
+           recursive: true
+         });
+
+         toast.success('Document Persisted to Documents');
+
+         // Trigger Native Share/Open Handshake
+         try {
+            await Share.share({
+              title: 'Personnel Payslip',
+              text: `Strategic Remuneration Transcript: ${salary.month} ${salary.year}`,
+              url: savedFile.uri,
+              dialogTitle: 'Share Payslip',
+            });
+         } catch (shareErr) {
+            console.log('Share Handshake Aborted or Unavailable');
+            // Fallback: Attempt to open directly
+            await FileOpener.showOpenWithDialog({
+              filePath: savedFile.uri,
+              contentType: 'application/pdf',
+            });
+         }
+       } else {
+         // Create secure blob stream for Web Nodes
+         const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+         const link = document.createElement('a');
+         link.href = blobUrl;
+         link.setAttribute('download', fileName);
+         document.body.appendChild(link);
+         link.click();
+         link.remove();
+         window.URL.revokeObjectURL(blobUrl);
+       }
     } catch (err) {
+       console.error('🔥 Financial Acquisition Failure:', err);
        toast.error('PDF Acquisition Link Failed: Authorization Rejected.');
     }
   };
