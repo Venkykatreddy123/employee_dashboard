@@ -52,7 +52,10 @@ const Dashboard = () => {
   const isAdmin = ['Admin', 'Manager', 'HR'].includes(user?.role);
 
   const fetchStats = useCallback(async () => {
-    if (!user?.emp_id) return;
+    if (!user?.emp_id) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const endpoint = isAdmin 

@@ -1,13 +1,16 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5050';
+const getDynamicSocketURL = () => {
+  const envURL = import.meta.env.VITE_API_URL || 'http://localhost:5050';
+  if (typeof window !== 'undefined' && /android/i.test(navigator.userAgent) && envURL.includes('localhost')) {
+     return envURL.replace('localhost', '10.0.2.2');
+  }
+  return envURL;
+};
+
 const token = localStorage.getItem('token');
 
-/**
- * 📡 Socket Gateway: Real-Time Sync Provider
- * Standardizes WebSocket transport and persistent auth handshake.
- */
-const socket = io(SOCKET_URL, {
+const socket = io(getDynamicSocketURL(), {
   auth: {
     token: token
   },
@@ -18,6 +21,6 @@ const socket = io(SOCKET_URL, {
   reconnectionDelay: 1000
 });
 
-console.log(`📡 [SOCKET] Protocol: ${token ? 'AUTHENTICATED' : 'ANONYMOUS'} Gateway: ${SOCKET_URL}`);
+console.log(`📡 [SOCKET] Protocol: ${token ? 'AUTHENTICATED' : 'ANONYMOUS'} Gateway: ${getDynamicSocketURL()}`);
 
 export default socket;

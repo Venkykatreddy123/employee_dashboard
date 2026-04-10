@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import { downloadFile } from '../services/downloadService';
 
 const Salary = () => {
   const { user } = useAuth();
@@ -70,17 +71,12 @@ const Salary = () => {
     try {
       // Fetch PDF as blob with Authorization headers
       const response = await api.get(payslipUrl, { responseType: 'blob' });
-
-      // Create secure blob stream
-      const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.setAttribute('download', `Payslip_${salary.emp_id}_${salary.month}_${salary.year}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(blobUrl);
+      const fileName = `Payslip_${salary.emp_id}_${salary.month}_${salary.year}.pdf`;
+      
+      await downloadFile(new Blob([response.data]), fileName);
+      toast.success('PDF Successfully Synchronized to Device Storage');
     } catch (err) {
+      console.error('Download Protocol Failure:', err);
       toast.error('PDF Acquisition Link Failed: Authorization Rejected.');
     }
   };
