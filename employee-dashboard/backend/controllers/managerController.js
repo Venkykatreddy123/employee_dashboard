@@ -1,4 +1,4 @@
-const { db } = require('../db');
+const { db } = require('../config/db');
 
 const managerController = {
     // Get Team Employees (assigned to manager)

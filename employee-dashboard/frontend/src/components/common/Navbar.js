@@ -2,10 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { User, Bell, Search, Settings, LogOut, ChevronDown, Calendar, Briefcase, CheckCircle, FileText, X } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { logout, getNotifications, markNotificationRead, markAllNotificationsRead } from '../api/api';
+import { logout, getNotifications, markNotificationRead, markAllNotificationsRead } from '../../api/api';
 import { formatDistanceToNow } from 'date-fns';
 
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000';
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || 'https://empdashboard.onrender.com';
 
 const Navbar = () => {
     const navigate = useNavigate();

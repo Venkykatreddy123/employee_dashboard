@@ -1,10 +1,18 @@
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:5000/api';
-const ADMIN_API = `${BASE_URL}/admin`;
+const getBaseUrl = () => {
+    let url = process.env.REACT_APP_API_URL || 'https://empdashboard.onrender.com/api';
+    if (!url.includes('/api')) {
+        url = url.replace(/\/$/, '') + '/api';
+    }
+    return url.replace(/\/$/, '') + '/';
+};
+const BASE_URL = getBaseUrl();
+const ADMIN_API = `${BASE_URL}admin`;
 
 const getAuthHeader = () => ({
-    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+    withCredentials: true
 });
 
 export const getSummary = () => axios.get(`${ADMIN_API}/summary`, getAuthHeader());
@@ -24,10 +32,13 @@ export const getAllPayroll = (search = '', status = '') => axios.get(`${ADMIN_AP
 export const updatePayroll = (id, data) => axios.put(`${ADMIN_API}/payroll/${id}`, data, getAuthHeader());
 export const deletePayroll = (id) => axios.delete(`${ADMIN_API}/payroll/${id}`, getAuthHeader());
 export const updatePayrollStatus = (id, status) => axios.put(`${ADMIN_API}/payroll/${id}/status`, { status }, getAuthHeader());
-export const getEmployeePayslips = (id) => axios.get(`${BASE_URL}/employee/${id}/payslips`, getAuthHeader());
-export const getManagerPayroll = () => axios.get(`${BASE_URL}/manager/payroll`, getAuthHeader());
+export const getEmployeePayslips = (id) => axios.get(`${BASE_URL}employee/${id}/payslips`, getAuthHeader());
+export const getManagerPayroll = () => axios.get(`${BASE_URL}manager/payroll`, getAuthHeader());
 export const getManagers = () => axios.get(`${ADMIN_API}/managers`, getAuthHeader());
 
 // 👤 User Aliases
-export const addEmployee = (data) => axios.post(`${ADMIN_API}/employees`, { ...data, role: 'Employee' }, getAuthHeader());
-export const addManager = (data) => axios.post(`${ADMIN_API}/managers`, { ...data, role: 'Manager' }, getAuthHeader());
+export const addEmployee = (data) => axios.post(`${BASE_URL}employees`, { ...data, role: 'Employee' }, getAuthHeader());
+export const addManager = (data) => axios.post(`${BASE_URL}managers`, { ...data, role: 'Manager' }, getAuthHeader());
+export const deleteEmployee = (id) => axios.delete(`${BASE_URL}employees/${id}`, getAuthHeader());
+export const deleteManager = (id) => axios.delete(`${BASE_URL}managers/${id}`, getAuthHeader());
+

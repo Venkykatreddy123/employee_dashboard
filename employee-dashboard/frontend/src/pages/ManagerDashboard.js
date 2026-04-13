@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import { 
     Users, Briefcase, CheckCircle, Clock, AlertCircle, 
     BarChart2, Filter, Plus, Search, MoreHorizontal,
@@ -14,6 +14,8 @@ import LeaveTable from '../components/LeaveTable';
 import { ProductivityChart, TeamPerformanceChart } from '../components/Charts';
 import * as adminApi from '../api/adminApi';
 import '../styles/dashboard.css';
+import { socket } from '../utils/socket';
+
 
 const ManagerDashboard = () => {
     const [activeTab, setActiveTab] = useState('productivity');
@@ -155,8 +157,16 @@ const ManagerDashboard = () => {
 
     useEffect(() => {
         fetchData();
-        const pollInterval = setInterval(fetchData, 5000); // 5s Polling for Real-time Sync
-        return () => clearInterval(pollInterval);
+
+        // 🔌 Real-time sync
+        socket.on('EMPLOYEE_UPDATED', () => {
+            console.log('Manager Portal: Real-time update received');
+            fetchData();
+        });
+
+        return () => {
+            socket.off('EMPLOYEE_UPDATED');
+        };
     }, [filterDate]);
 
     const fetchData = async () => {

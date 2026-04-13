@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchAttendance, fetchEmployees, checkIn, checkOut } from '../api/api';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import AttendanceTable from '../components/AttendanceTable';
 import { MapPin, LogIn, LogOut, Search, Filter } from 'lucide-react';
 import '../styles/dashboard.css';

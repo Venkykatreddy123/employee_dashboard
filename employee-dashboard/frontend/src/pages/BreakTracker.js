@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchEmployees, startBreak, endBreak, fetchDashboardStats } from '../api/api';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import { Coffee, UserCheck, Play, Pause, Save, History, Timer } from 'lucide-react';
 import '../styles/dashboard.css';
 

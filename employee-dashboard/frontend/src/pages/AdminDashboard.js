@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import * as adminApi from '../api/adminApi';
 import { 
   Users, 
@@ -21,6 +21,9 @@ import {
 } from 'lucide-react';
 import '../styles/dashboard.css';
 import { downloadPayslipPDF } from '../utils/generatePayslip';
+import { socket } from '../utils/socket';
+import { useNavigate } from 'react-router-dom';
+
 
 const AdminDashboard = ({ tab }) => {
     const [activeTab, setActiveTab] = useState(tab || 'overview');
@@ -55,10 +58,19 @@ const AdminDashboard = ({ tab }) => {
         email: '', phone_number: '', department: '', joining_date: new Date().toISOString().split('T')[0],
         address: '', status: 'Active', basic_salary: 0
     });
+    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+    const [deletingId, setDeletingId] = useState(null);
+    const [isCreatingPayroll, setIsCreatingPayroll] = useState(false);
+    const navigate = useNavigate();
 
-    const resetForm = () => {
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 3000);
+    };
+
+    const resetForm = (targetRole = 'Employee') => {
         setFormData({
-            username: '', password: '', role: 'Employee', manager_id: '',
+            username: '', password: '', role: targetRole, manager_id: '',
             email: '', phone_number: '', department: '', joining_date: new Date().toISOString().split('T')[0],
             address: '', status: 'Active', basic_salary: 0
         });
@@ -102,6 +114,16 @@ const AdminDashboard = ({ tab }) => {
 
     useEffect(() => {
         fetchData();
+
+        // 🔌 Real-time sync
+        socket.on('EMPLOYEE_UPDATED', () => {
+            console.log('Real-time update received: Refreshing data...');
+            fetchData();
+        });
+
+        return () => {
+            socket.off('EMPLOYEE_UPDATED');
+        };
     }, [payrollSearch, payrollFilterStatus]);
 
     const handleSubmit = async (e) => {
@@ -109,30 +131,53 @@ const AdminDashboard = ({ tab }) => {
         try {
             if (editingUser) {
                 await adminApi.updateUser({ ...formData, id: editingUser.id, name: formData.username });
+                showToast('User updated successfully!');
             } else {
                 await adminApi.createUser({ ...formData, name: formData.username });
+                showToast('User created successfully!');
             }
             setShowUserModal(false);
             resetForm();
             fetchData();
         } catch (err) {
-            alert('Operation failed: ' + (err.response?.data?.message || err.message));
+            showToast(err.response?.data?.message || 'Operation failed', 'error');
         }
     };
 
     const handlePayrollSubmit = async (e) => {
         e.preventDefault();
+        setIsCreatingPayroll(true);
         try {
             if (editingPayroll) {
                 await adminApi.updatePayroll(editingPayroll.id, { ...payrollForm, status: editingPayroll.status });
+                showToast('Payroll updated successfully!');
             } else {
                 await adminApi.createPayroll({ ...payrollForm, employee_id: selectedEmployee.id });
+                showToast('Payslip Generated Successfully!');
             }
+            
             setShowPayrollModal(false);
             setEditingPayroll(null);
-            fetchData();
+            
+            // Clear form
+            setPayrollForm({ 
+                month: new Date().toLocaleString('default', { month: 'long' }), 
+                year: new Date().getFullYear(), 
+                basic_salary: 0,
+                bonus: 0,
+                deductions: 0
+            });
+
+            await fetchData();
+            
+            // Redirect to Payroll tab
+            setActiveTab('payroll');
+            navigate('/admin-payroll');
+            
         } catch (err) {
-            alert(err.response?.data?.message || 'Operation failed');
+            showToast(err.response?.data?.message || 'Operation failed', 'error');
+        } finally {
+            setIsCreatingPayroll(false);
         }
     };
 
@@ -148,12 +193,21 @@ const AdminDashboard = ({ tab }) => {
     };
 
     const handleDeleteUser = async (id) => {
-        if (window.confirm('Are you sure you want to delete this user?')) {
+        if (window.confirm('Are you sure you want to permanently delete this user and all data?')) {
+            setDeletingId(id);
+            // Optimistic UI update
+            const originalUsers = [...users];
+            setUsers(users.filter(u => u.id !== id));
+            
             try {
                 await adminApi.deleteUser(id);
-                fetchData();
+                showToast('User deleted successfully');
+                fetchData(); // Sync with DB
             } catch (err) {
-                alert('Delete failed');
+                setUsers(originalUsers); // Rollback
+                showToast(err.response?.data?.message || 'Delete failed', 'error');
+            } finally {
+                setDeletingId(null);
             }
         }
     };
@@ -314,7 +368,13 @@ const AdminDashboard = ({ tab }) => {
                                                 });
                                                 setShowPayrollModal(true);
                                             }}><DollarSign size={14} /></button>
-                                            <button className="btn btn-sm btn-icon border text-danger" onClick={() => handleDeleteUser(u.id)}><Trash2 size={14} /></button>
+                                            <button 
+                                                className={`btn btn-sm btn-icon border text-danger ${deletingId === u.id ? 'opacity-50' : ''}`} 
+                                                disabled={deletingId === u.id}
+                                                onClick={() => handleDeleteUser(u.id)}
+                                            >
+                                                {deletingId === u.id ? <div className="spinner-border spinner-border-sm" role="status"></div> : <Trash2 size={14} />}
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -491,6 +551,14 @@ const AdminDashboard = ({ tab }) => {
             <Sidebar />
             <Navbar />
             
+            {/* 🍞 Toast Notification */}
+            {toast.show && (
+                <div className={`toast-message ${toast.type} animate-in`}>
+                    {toast.type === 'success' ? <CheckCircle size={18} /> : <XCircle size={18} />}
+                    {toast.message}
+                </div>
+            )}
+
             <main className="main-content">
                 <div className="tab-header d-flex justify-content-between align-items-center mb-4">
                     <div>
@@ -498,7 +566,10 @@ const AdminDashboard = ({ tab }) => {
                         <p className="text-secondary mb-0">Management interface for employees, payroll, and productivity.</p>
                     </div>
                     {(activeTab === 'employees' || activeTab === 'managers') && (
-                        <button className="btn btn-primary-custom d-flex align-items-center gap-2" onClick={() => { resetForm(); setShowUserModal(true); }}>
+                        <button className="btn btn-primary-custom d-flex align-items-center gap-2" onClick={() => { 
+                            resetForm(activeTab === 'managers' ? 'Manager' : 'Employee'); 
+                            setShowUserModal(true); 
+                        }}>
                             <Plus size={18} /> Add {activeTab === 'employees' ? 'Employee' : 'Manager'}
                         </button>
                     )}
@@ -664,7 +735,13 @@ const AdminDashboard = ({ tab }) => {
                                     <h4 className="m-0 text-primary">₹{(Number(payrollForm.basic_salary) + Number(payrollForm.bonus || 0) - Number(payrollForm.deductions || 0)).toLocaleString()}</h4>
                                 </div>
                                 <button type="button" className="btn btn-light" onClick={() => { setShowPayrollModal(false); setEditingPayroll(null); }}>Cancel</button>
-                                <button type="submit" className="btn btn-primary-custom">{editingPayroll ? 'Update Record' : 'Generate Payslip'}</button>
+                                <button type="submit" className="btn btn-primary-custom" disabled={isCreatingPayroll}>
+                                    {isCreatingPayroll ? (
+                                        <><div className="spinner-border spinner-border-sm me-2" role="status"></div> Processing...</>
+                                    ) : (
+                                        editingPayroll ? 'Update Record' : 'Generate Payslip'
+                                    )}
+                                </button>
                             </div>
                         </form>
                     </div>

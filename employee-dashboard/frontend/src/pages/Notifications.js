@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Bell, Calendar, Briefcase, CheckCircle, FileText, MarkAsRead } from 'lucide-react';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../api/api';
 import { formatDistanceToNow } from 'date-fns';
-import Navbar from '../components/Navbar';
-import Sidebar from '../components/Sidebar';
+import Navbar from '../components/common/Navbar';
+import Sidebar from '../components/common/Sidebar';
 
 const Notifications = () => {
     const [notifications, setNotifications] = useState([]);

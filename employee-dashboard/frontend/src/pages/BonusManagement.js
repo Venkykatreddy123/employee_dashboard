@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchBonuses, fetchEmployees, createBonus, updateBonus } from '../api/api';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import BonusTable from '../components/BonusTable';
 import { Coins, Plus, X, UserPlus, Save, DollarSign, Calendar, FileText } from 'lucide-react';
 import '../styles/dashboard.css';

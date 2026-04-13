@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getTeamLeaves, getUsers, applyLeave, leaveAction } from '../api/api';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import LeaveTable from '../components/LeaveTable';
 import { Mail, Calendar, X, Plus, Save, Activity } from 'lucide-react';
 import '../styles/dashboard.css';

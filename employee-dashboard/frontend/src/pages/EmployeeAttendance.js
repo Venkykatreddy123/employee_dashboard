@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import { Calendar, Clock, BarChart, FileText } from 'lucide-react';
 import { format } from 'date-fns';
+
+const API_BASE = process.env.REACT_APP_API_URL || 'https://empdashboard.onrender.com/api';
 
 const EmployeeAttendance = () => {
     const [data, setData] = useState({ summary: {}, history: [] });
@@ -12,7 +14,7 @@ const EmployeeAttendance = () => {
     const fetchData = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:5000/api/activities/attendance', {
+            const res = await axios.get(`${API_BASE}/activities/attendance`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             setData(res.data);

@@ -1,4 +1,4 @@
-const { db } = require('../db');
+const { db } = require('../config/db');
 const bcrypt = require('bcryptjs');
 const { nanoid } = require('nanoid');
 const notificationController = require('./notificationController');
@@ -53,6 +53,20 @@ const adminController = {
     createUser: async (req, res) => {
         try {
             const { name, username, email, password, role, manager_id, phone_number, department, joining_date, address, salary, basic_salary } = req.body;
+            
+            if (!email || !name) {
+                return res.status(400).json({ message: 'Name and Email are required' });
+            }
+
+            // Check if user already exists
+            const existing = await db.execute({
+                sql: "SELECT id FROM users WHERE email = ?",
+                args: [email]
+            });
+            if (existing.rows.length > 0) {
+                return res.status(400).json({ message: 'User with this email already exists' });
+            }
+
             const defaultPassword = password || 'password123';
             const hashedPassword = await bcrypt.hash(defaultPassword, 10);
             const displayName = name || username || email.split('@')[0];
@@ -69,7 +83,7 @@ const adminController = {
             const newId = Number(result.lastInsertRowid);
 
             // 👉 NEW: Automatically create an initial payroll record
-            if ((role || 'Employee').toLowerCase() === 'employee') {
+            if ((role || 'Employee').toLowerCase() === 'employee' || (role || 'Employee').toLowerCase() === 'manager') {
                 const now = new Date();
                 const month = now.toLocaleString('default', { month: 'long' });
                 const year = now.getFullYear();
@@ -79,6 +93,12 @@ const adminController = {
                           VALUES (?, ?, ?, ?, ?, ?, ?, 'Unpaid')`,
                     args: [newId, finalSalary, 0, 0, finalSalary, month, year]
                 });
+            }
+
+            // 📣 Notify All Dashboards
+            if (req.io) {
+                req.io.emit('DATA_UPDATED', { type: 'USER_CREATED', id: newId });
+                req.io.emit('EMPLOYEE_UPDATED'); // Broad event for general refresh
             }
 
             res.status(201).json({ message: 'User created successfully', id: newId });
@@ -93,7 +113,14 @@ const adminController = {
         create: async (req, res) => {
             try {
                 const { employee_id, basic_salary, bonus, allowances, deductions, month, year } = req.body;
-                const net_salary = (Number(basic_salary) || 0) + (Number(bonus) || 0) + (Number(allowances) || 0) - (Number(deductions) || 0);
+                
+                // Ensure numeric values
+                const bSalary = Number(basic_salary) || 0;
+                const bBonus = Number(bonus) || 0;
+                const bAllowances = Number(allowances) || 0;
+                const bDeductions = Number(deductions) || 0;
+
+                const net_salary = bSalary + bBonus + bAllowances - bDeductions;
                 
                 // Duplicate Check
                 const existing = await db.execute({
@@ -107,8 +134,10 @@ const adminController = {
                 const result = await db.execute({
                     sql: `INSERT INTO payroll (employee_id, basic_salary, bonus, allowances, deductions, net_salary, month, year) 
                           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                    args: [employee_id, basic_salary, bonus || 0, allowances || 0, deductions || 0, net_salary, month, year]
+                    args: [employee_id, bSalary, bBonus, bAllowances, bDeductions, net_salary, month, year]
                 });
+
+                const newPayrollId = Number(result.lastInsertRowid);
 
                 // 🔔 Notify Employee of new payslip
                 await notificationController.create(
@@ -117,12 +146,20 @@ const adminController = {
                     'New Payslip Generated',
                     `Your payslip for ${month} ${year} is now available to view.`,
                     req.io
-                );
+                ).catch(err => console.warn("Notification error:", err.message));
 
-                res.status(201).json({ id: Number(result.lastInsertRowid) });
+                if (req.io) {
+                    req.io.emit('EMPLOYEE_UPDATED'); // Trigger real-time sync across dashboards
+                }
+
+                res.status(201).json({ 
+                    message: "Payslip Generated Successfully",
+                    id: newPayrollId,
+                    net_salary
+                });
             } catch (error) {
                 console.error('Payroll Create Error:', error);
-                res.status(500).json({ message: 'Server error' });
+                res.status(500).json({ message: 'Server error during payroll creation' });
             }
         },
 
@@ -137,6 +174,7 @@ const adminController = {
                 // Ensure field names match UI expectations
                 res.json(result.rows);
             } catch (error) {
+                console.error('Payroll Get All Error:', error);
                 res.status(500).json({ message: 'Server error' });
             }
         },
@@ -251,10 +289,19 @@ const adminController = {
 
     updateUser: async (req, res) => {
         const id = req.params.id || req.body.id;
-        const { username, name, role, manager_id, email, phone_number, department, status, address, basic_salary, joining_date } = req.body;
+        const { username, name, role, manager_id, email, phone_number, department, status, address, basic_salary, salary, joining_date } = req.body;
         const displayName = name || username;
 
         try {
+            // Check if user exists
+            const existing = await db.execute({
+                sql: "SELECT id FROM users WHERE id = ?",
+                args: [id]
+            });
+            if (existing.rows.length === 0) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
             await db.execute({
                 sql: `
                     UPDATE users 
@@ -270,11 +317,18 @@ const adminController = {
                     department || null, 
                     status || 'Active', 
                     address || null, 
-                    Number(basic_salary || 0),
+                    Number(basic_salary || salary || 0),
                     joining_date || null,
                     id
                 ]
             });
+
+            // 📣 Notify All Dashboards
+            if (req.io) {
+                req.io.emit('DATA_UPDATED', { type: 'USER_UPDATED', id });
+                req.io.emit('EMPLOYEE_UPDATED');
+            }
+
             res.json({ message: 'User updated successfully' });
         } catch (error) {
             console.error('Update User Error:', error);
@@ -283,16 +337,77 @@ const adminController = {
     },
 
     deleteUser: async (req, res) => {
+        const { id } = req.params;
         try {
-            const { id } = req.params;
+            // 1️⃣ Protection: Don't delete self
+            if (req.user && req.user.id === Number(id)) {
+                return res.status(400).json({ message: 'You cannot delete your own account.' });
+            }
+
+            // 2️⃣ Check if user exists
+            const existing = await db.execute({
+                sql: "SELECT role FROM users WHERE id = ?",
+                args: [id]
+            });
+            if (existing.rows.length === 0) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            // 3️⃣ Manager Handling: Reassign employees to "No Manager" (NULL)
+            await db.execute({
+                sql: "UPDATE users SET manager_id = NULL WHERE manager_id = ?",
+                args: [id]
+            });
+
+            // 4️⃣ Manual Cascade: Delete records from tables without ON DELETE CASCADE
+            // Though some have it, doing it explicitly ensures stability across environments
+            const relatedTables = [
+                "payroll", "attendance", "leave_requests", "work_sessions", 
+                "bonuses", "breaks", "project_assignments", "task_assignments", 
+                "notifications", "meeting_participants", "meetings"
+            ];
+            
+            for (const table of relatedTables) {
+                let column = 'employee_id';
+                if (table === 'work_sessions' || table === 'notifications') column = 'user_id';
+                if (table === 'meetings') column = 'manager_id';
+                
+                await db.execute({
+                    sql: `DELETE FROM ${table} WHERE ${column} = ?`,
+                    args: [id]
+                }).catch(err => console.warn(`Soft delete warning on ${table}:`, err.message));
+            }
+
+            // 5️⃣ Special case: Projects managed by this user and Leave Requests where this user is the manager
+            await db.execute({
+                sql: "DELETE FROM projects WHERE manager_id = ?",
+                args: [id]
+            });
+            
+            await db.execute({
+                sql: "DELETE FROM leave_requests WHERE manager_id = ?",
+                args: [id]
+            });
+
+            // 6️⃣ Final Deletion
             await db.execute({
                 sql: `DELETE FROM users WHERE id = ?`,
                 args: [id]
             });
-            res.json({ message: 'User deleted successfully' });
+
+            // 📣 Notify All Dashboards
+            if (req.io) {
+                req.io.emit('DATA_UPDATED', { type: 'USER_DELETED', id });
+                req.io.emit('EMPLOYEE_UPDATED');
+            }
+
+            res.json({ message: 'User and all related data deleted successfully' });
         } catch (error) {
             console.error('Delete User Error:', error);
-            res.status(500).json({ message: 'Deletion failed' });
+            res.status(500).json({ 
+                message: 'Deletion failed due to a database constraint. Ensure all dependencies are cleared.',
+                error: error.message 
+            });
         }
     },
 
@@ -302,6 +417,7 @@ const adminController = {
             const result = await db.execute("SELECT id, name as username, role FROM users WHERE role != 'Admin'");
             res.json(result.rows.map(r => ({ ...r, base_salary: 0, bonuses: 0, deductions: 0, net_salary: 0 })));
         } catch (error) {
+            console.error('Get Salaries Error:', error);
             res.status(500).json({ message: 'Database error' });
         }
     },
@@ -321,8 +437,17 @@ const adminController = {
                 `,
                 args: [targetDate]
             });
-            res.json(result.rows);
+            res.json(result.rows.map(a => ({
+                id: a.id,
+                employee_name: a.employee_name,
+                role: a.role,
+                start_time: a.check_in_time,
+                end_time: a.check_out_time,
+                duration: a.total_duration,
+                status: a.check_out_time ? 'Completed' : 'Ongoing'
+            })));
         } catch (error) {
+            console.error('Get All Attendance Error:', error);
             res.status(500).json({ message: 'Database error' });
         }
     },

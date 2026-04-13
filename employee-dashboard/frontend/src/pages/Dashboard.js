@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fetchDashboardStats, fetchAttendance, fetchLeaves, fetchBonuses } from '../api/api';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import { AttendanceChart, LeaveChart } from '../components/Charts';
 import AttendanceTable from '../components/AttendanceTable';
 import { 

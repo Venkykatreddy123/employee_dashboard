@@ -14,7 +14,7 @@ import {
   DollarSign,
   Video
 } from 'lucide-react';
-import { logout } from '../api/api';
+import { logout } from '../../api/api';
 
 const Sidebar = () => {
     const navigate = useNavigate();

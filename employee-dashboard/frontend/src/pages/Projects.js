@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import { 
     Plus, Folder, Calendar, Users as UsersIcon, Clock, 
     MoreHorizontal, Trash2, CheckCircle2, ChevronRight, X

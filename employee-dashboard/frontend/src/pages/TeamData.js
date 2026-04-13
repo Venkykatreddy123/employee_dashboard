@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getTeamEmployees } from '../api/api';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import { Users, UserCheck, Briefcase, Mail } from 'lucide-react';
 import '../styles/dashboard.css';
 

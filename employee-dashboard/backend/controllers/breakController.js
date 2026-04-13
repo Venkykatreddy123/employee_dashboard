@@ -1,4 +1,4 @@
-const { db } = require('../db');
+const { db } = require('../config/db');
 const { differenceInMinutes, parseISO, format } = require('date-fns');
 
 const breakController = {

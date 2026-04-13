@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchEmployees, createEmployee, updateEmployee, deleteEmployee } from '../api/api';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import EmployeeTable from '../components/EmployeeTable';
 import { Plus, X, UserPlus, Save, Briefcase, Mail, DollarSign, Calendar } from 'lucide-react';
 import '../styles/dashboard.css';

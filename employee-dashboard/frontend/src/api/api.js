@@ -1,20 +1,34 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const getBaseUrl = () => {
+    let url = process.env.REACT_APP_API_URL || 'https://empdashboard.onrender.com/api';
+    if (!url.includes('/api')) {
+        url = url.replace(/\/$/, '') + '/api';
+    }
+    return url.replace(/\/$/, '') + '/';
+};
+const API_BASE_URL = getBaseUrl();
 
 const api = axios.create({
     baseURL: API_BASE_URL,
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json'
     }
 });
 
-// Interceptor for Auth Token
+// Interceptor for Auth Token & Path Normalization
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
     if (token) {
         config.headers['Authorization'] = `Bearer ${token}`;
     }
+    
+    // Normalize path to prevent baseURL stripping (important for /api/ paths)
+    if (config.url.startsWith('/')) {
+        config.url = config.url.substring(1);
+    }
+    
     return config;
 }, (error) => {
     return Promise.reject(error);
@@ -29,16 +43,20 @@ export const logout = () => {
 };
 export const getMe = () => api.get('/auth/me');
 
-// 👤 Users
+// 👤 Users & Employees
 export const getUsers = () => api.get('/users');
-export const fetchEmployees = getUsers; // Component compatibility
-export const getTeamEmployees = getUsers; // Legacy alias
+export const fetchEmployees = () => api.get('/employees'); // New alias
+export const getEmployeeById = (id) => api.get(`/employees/${id}`);
+export const createEmployee = (data) => api.post('/employees', data);
+export const updateEmployee = (id, data) => api.put(`/employees/${id}`, data);
+export const deleteEmployee = (id) => api.delete(`/employees/${id}`);
+export const fetchManagers = () => api.get('/managers');
+
+// Legacy Aliases
 export const createUser = (data) => api.post('/users', data);
-export const createEmployee = (data) => api.post('/admin/employees', data); // Explicit admin endpoint
 export const updateUser = (id, data) => api.put(`/users/${id}`, data);
-export const updateEmployee = updateUser; // Component compatibility
 export const deleteUser = (id) => api.delete(`/users/${id}`);
-export const deleteEmployee = deleteUser; // Component compatibility
+export const getTeamEmployees = fetchEmployees;
 
 // 📁 PROJECTS & TASKS MANAGEMENT (Revised)
 export const createProject = (data) => api.post('/projects', data);
@@ -62,7 +80,7 @@ export const fetchAttendance = () => api.get('/work-session/logs'); // For dashb
 
 // 📊 Dashboard Analytics
 export const fetchDashboardStats = () => api.get('/dashboard/stats');
-export const fetchLeaves = () => api.get('/leave/history'); // Alias for fetchLeaves
+export const fetchLeaves = () => api.get('/leaves'); // Alias for fetchLeaves
 export const fetchBonuses = () => api.get('/bonuses');
 export const createBonus = (data) => api.post('/bonuses', data);
 export const updateBonus = (id, data) => api.put(`/bonuses/${id}`, data);
@@ -79,10 +97,10 @@ export const getRecentLogs = () => api.get('/work-session/logs').catch(() => ({ 
 export const getPersonalReports = () => api.get('/attendance/report').catch(() => ({ data: [] }));
 
 // 📅 Leave Management
-export const applyLeave = (data) => api.post('/leave/apply', data);
-export const getPersonalLeaves = () => api.get('/leave/history');
-export const getTeamLeaves = () => api.get('/leave/team');
-export const leaveAction = (id, status) => api.put(`/leave/${id}/status`, { status });
+export const applyLeave = (data) => api.post('/leaves', data);
+export const getPersonalLeaves = () => api.get('/leaves');
+export const getTeamLeaves = () => api.get('/leaves');
+export const leaveAction = (id, status) => api.put(`/leaves/${id}`, { status });
 
 export const getTeamProductivity = () => api.get('/attendance/productivity').catch(() => ({ data: [] }));
 export const getTeamAttendance = (date) => api.get('/attendance/report').catch(() => ({ data: { attendance: [], summary: { present: 0 } } }));

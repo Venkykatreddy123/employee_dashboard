@@ -1,4 +1,4 @@
-const { db } = require('../db');
+const { db } = require('../config/db');
 const bcrypt = require('bcryptjs');
 
 const userController = {
@@ -52,7 +52,7 @@ const userController = {
         try {
             const { id } = req.params;
             const result = await db.execute({
-                sql: 'SELECT id, name, email, role, created_at FROM users WHERE id = ?',
+                sql: 'SELECT id, name, email, role, manager_id, phone_number, department, joining_date, address, basic_salary, status, created_at FROM users WHERE id = ?',
                 args: [id]
             });
 

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import { User, Mail, Shield, Calendar, Edit3, Save, X, Lock } from 'lucide-react';
 import axios from 'axios';
+
+const API_BASE = process.env.REACT_APP_API_URL || 'https://empdashboard.onrender.com/api';
 
 const Profile = () => {
     const location = useLocation();
@@ -31,7 +33,7 @@ const Profile = () => {
     const fetchProfile = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get('http://localhost:5000/api/auth/me', {
+            const res = await axios.get(`${API_BASE}/auth/me`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setUser(res.data);
@@ -57,7 +59,7 @@ const Profile = () => {
 
         try {
             const token = localStorage.getItem('token');
-            await axios.put('http://localhost:5000/api/auth/profile', formData, {
+            await axios.put(`${API_BASE}/auth/profile`, formData, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setMessage('Profile updated successfully!');

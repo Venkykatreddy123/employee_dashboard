@@ -1,4 +1,4 @@
-const { db } = require('../db');
+const { db } = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { nanoid } = require('nanoid');
@@ -15,8 +15,8 @@ const authController = {
             }
 
             const result = await db.execute({
-                sql: 'SELECT * FROM users WHERE email = ?',
-                args: [email]
+                sql: 'SELECT * FROM users WHERE email = ? OR name = ?',
+                args: [email, email]
             });
 
             if (result.rows.length === 0) {
@@ -39,6 +39,14 @@ const authController = {
 
             const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '8h' });
 
+            // 🍪 Set secure cookie for cross-domain auth
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: true, // Required for sameSite: 'none'
+                sameSite: 'none',
+                maxAge: 8 * 60 * 60 * 1000 // 8 hours
+            });
+
             // ⏱️ Auto-start work session on login (for Employees/Managers)
             if (user.role && user.role.toLowerCase() !== 'admin') {
                 const now = new Date();
@@ -53,7 +61,7 @@ const authController = {
             }
 
             res.json({
-                token,
+                token, // Sending token for backward compatibility with localStorage-based frontend
                 user: {
                     id: user.id,
                     name: user.name,
@@ -63,8 +71,11 @@ const authController = {
                 }
             });
         } catch (error) {
-            console.error('Login Error:', error);
-            res.status(500).json({ message: 'Server error' });
+            console.error('Login Error details:', error);
+            res.status(500).json({ 
+                message: 'Server error during authentication',
+                error: process.env.NODE_ENV === 'production' ? null : error.message 
+            });
         }
     },
 

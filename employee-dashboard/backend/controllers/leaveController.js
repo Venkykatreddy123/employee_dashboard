@@ -1,4 +1,4 @@
-const { db } = require('../db');
+const { db } = require('../config/db');
 const { nanoid } = require('nanoid');
 const notificationController = require('./notificationController');
 
@@ -89,6 +89,45 @@ const leaveController = {
         } catch (error) {
             console.error('Get Manager Leaves Error:', error);
             res.status(500).json({ message: 'Error fetching team leave requests' });
+        }
+    },
+
+    // 📋 Main route to get leaves based on role
+    getLeaves: async (req, res) => {
+        const { id, role } = req.user;
+        try {
+            let result;
+            if (role === 'admin' || role === 'Admin') {
+                result = await db.execute({
+                    sql: `
+                        SELECT lr.*, u.name as employee_name, u.department
+                        FROM leave_requests lr
+                        JOIN users u ON lr.employee_id = u.id
+                        ORDER BY lr.created_at DESC
+                    `
+                });
+            } else if (role === 'manager' || role === 'Manager') {
+                result = await db.execute({
+                    sql: `
+                        SELECT lr.*, u.name as employee_name, u.department
+                        FROM leave_requests lr
+                        JOIN users u ON lr.employee_id = u.id
+                        WHERE lr.manager_id = ?
+                        ORDER BY lr.created_at DESC
+                    `,
+                    args: [id]
+                });
+            } else {
+                // Default: Employee gets their own leaves
+                result = await db.execute({
+                    sql: "SELECT * FROM leave_requests WHERE employee_id = ? ORDER BY created_at DESC",
+                    args: [id]
+                });
+            }
+            res.json(result.rows);
+        } catch (error) {
+            console.error('Get Leaves Error:', error);
+            res.status(500).json({ message: 'Error fetching leave requests' });
         }
     },
 

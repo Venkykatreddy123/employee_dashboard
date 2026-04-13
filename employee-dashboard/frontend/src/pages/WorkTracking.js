@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as api from '../api/api';
-import Sidebar from '../components/Sidebar';
-import Navbar from '../components/Navbar';
+import Sidebar from '../components/common/Sidebar';
+import Navbar from '../components/common/Navbar';
 import { 
   Play, 
   Pause, 
@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { format, differenceInSeconds } from 'date-fns';
 import '../styles/dashboard.css';
+import { socket } from '../utils/socket';
+
 
 const WorkTracking = () => {
     const [status, setStatus] = useState({ work: null, break: null, meeting: null });
@@ -53,8 +55,18 @@ const WorkTracking = () => {
 
     useEffect(() => {
         fetchData();
-        const interval = setInterval(fetchData, 30000); // Polling every 30s
-        return () => clearInterval(interval);
+
+        // 🔌 Real-time sync
+        socket.on('EMPLOYEE_UPDATED', () => {
+            console.log('Employee Dashboard: Syncing latest data...');
+            fetchData();
+        });
+
+        const interval = setInterval(fetchData, 30000); // Polling every 30s as fallback
+        return () => {
+            socket.off('EMPLOYEE_UPDATED');
+            clearInterval(interval);
+        };
     }, []);
 
     // Live Timer Engine
