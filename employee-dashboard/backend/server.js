@@ -3,6 +3,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
 const { Server } = require('socket.io');
 const routes = require('./routes');
 const { initializeTables } = require('./config/db');
@@ -59,17 +60,46 @@ app.use((req, res, next) => {
     next();
 });
 
+// Health check route (Moved to top for health checks like Render)
+app.get('/health', (req, res) => {
+    res.json({ message: 'Employee Dashboard API is running', status: 'OK' });
+});
+
+app.get('/', (req, res) => {
+    res.json({ message: 'Employee Dashboard API is running', status: 'OK' });
+});
+
 // Routes
 app.use('/api', routes);
 
 // 📁 Static Assets & Catch-all (for deployment)
 if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../frontend/build')));
-    app.get('*', (req, res) => {
-        if (!req.path.startsWith('/api')) {
-            res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
-        }
-    });
+    const buildPath = path.join(__dirname, '../frontend/build');
+    const indexPath = path.join(buildPath, 'index.html');
+    
+    // Check if the build directory exists
+    if (fs.existsSync(buildPath)) {
+        console.log(`Serving static files from: ${buildPath}`);
+        app.use(express.static(buildPath));
+        
+        // Only add catch-all if index.html actually exists to avoid ENOENT errors
+        app.get('*', (req, res) => {
+            if (!req.path.startsWith('/api')) {
+                if (fs.existsSync(indexPath)) {
+                    res.sendFile(indexPath);
+                } else {
+                    res.status(404).json({ 
+                        message: 'Frontend index.html NOT found in build directory. If you are using Vercel for frontend, this is expected.',
+                        buildPath: buildPath
+                    });
+                }
+            } else {
+                res.status(404).json({ message: 'API Route Not Found' });
+            }
+        });
+    } else {
+        console.log(`Static build path NOT found: ${buildPath}. Skipping static serving.`);
+    }
 }
 
 // 🗄️ Initialize DB Tables
@@ -78,7 +108,7 @@ initializeTables();
 // Socket Connection
 io.on('connection', (socket) => {
     console.log('Client connected:', socket.id);
-    
+
     socket.on('disconnect', () => {
         console.log('Client disconnected:', socket.id);
     });

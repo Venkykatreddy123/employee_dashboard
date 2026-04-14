@@ -4,8 +4,7 @@ import Sidebar from '../components/common/Sidebar';
 import Navbar from '../components/common/Navbar';
 import { User, Mail, Shield, Calendar, Edit3, Save, X, Lock } from 'lucide-react';
 import axios from 'axios';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'https://empdashboard.onrender.com/api';
+import { API_BASE_URL as API_BASE } from '../config';
 
 const Profile = () => {
     const location = useLocation();

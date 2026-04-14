@@ -4,8 +4,7 @@ import Sidebar from '../components/common/Sidebar';
 import Navbar from '../components/common/Navbar';
 import { Calendar, Clock, BarChart, FileText } from 'lucide-react';
 import { format } from 'date-fns';
-
-const API_BASE = process.env.REACT_APP_API_URL || 'https://empdashboard.onrender.com/api';
+import { API_BASE_URL as API_BASE } from '../config';
 
 const EmployeeAttendance = () => {
     const [data, setData] = useState({ summary: {}, history: [] });

@@ -1,13 +1,6 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
-const getBaseUrl = () => {
-    let url = process.env.REACT_APP_API_URL || 'https://empdashboard.onrender.com/api';
-    if (!url.includes('/api')) {
-        url = url.replace(/\/$/, '') + '/api';
-    }
-    return url.replace(/\/$/, '') + '/';
-};
-const API_BASE_URL = getBaseUrl();
 
 const api = axios.create({
     baseURL: API_BASE_URL,

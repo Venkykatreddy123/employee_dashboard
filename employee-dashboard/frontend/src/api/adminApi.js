@@ -1,13 +1,7 @@
 import axios from 'axios';
+import { API_BASE_URL } from '../config';
 
-const getBaseUrl = () => {
-    let url = process.env.REACT_APP_API_URL || 'https://empdashboard.onrender.com/api';
-    if (!url.includes('/api')) {
-        url = url.replace(/\/$/, '') + '/api';
-    }
-    return url.replace(/\/$/, '') + '/';
-};
-const BASE_URL = getBaseUrl();
+const BASE_URL = API_BASE_URL;
 const ADMIN_API = `${BASE_URL}admin`;
 
 const getAuthHeader = () => ({
